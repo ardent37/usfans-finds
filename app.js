@@ -4,7 +4,7 @@
 const CONFIG = {
   brand: 'Salty',
   refCode: 'GRAS35',
-  homeUrl: 'https://www.usfans.com/register?ref=GRAS35',
+  homeUrl: 'https://usfans.com/product/3/7724623608?ref=GRAS35',
 
   // URL del CSV publicado de Google Sheets
   // (Archivo → Compartir → Publicar en la Web → pestaña de productos → CSV).
