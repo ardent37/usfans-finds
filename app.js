@@ -38,6 +38,10 @@ const CONFIG = {
     ["Women's Spreadsheet", 'Mujer', 'Women'],
   ],
 
+  // Chat: servidor de Discord mostrado con WidgetBot (dash.widgetbot.io). Vacío = pestaña Chat sin chat.
+  discordServer: '1456400905585955004',
+  discordChannel: '1456400907821650107',   // canal con el que se abre el chat (#general); vacío = lista de canales
+
   currency: '€',     // símbolo si el precio de la hoja es solo un número
   pageSize: 60,      // productos que se pintan por tanda al hacer scroll
   maxTabs: 10,       // al pasarse, se cierra la pestaña inactiva más antigua
@@ -738,6 +742,7 @@ function renderTools() {
 
 function showTool(id) {
   activeTool = id;
+  if (id === 'chat') loadChat();
   TOOLS.forEach((x) => { $(`tool-${x.id}`).hidden = x.id !== id; });
   els.tools.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-selected', String(TOOLS[i].id === id)));
   if (id === 'products') updateChipArrows();
@@ -822,6 +827,28 @@ function setupResizer() {
     const current = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--drawer-w'));
     if (document.documentElement.style.getPropertyValue('--drawer-w')) setDrawerWidth(current, false);
   });
+}
+
+/* ---------- Chat ---------- */
+// Se carga la primera vez que se abre la pestaña, para no ralentizar la entrada a la web
+let chatLoaded = false;
+
+function loadChat() {
+  if (chatLoaded) return;
+  chatLoaded = true;
+  if (!CONFIG.discordServer) {
+    $('chatEmpty').hidden = false;
+    return;
+  }
+  const embed = document.createElement('widgetbot');
+  embed.setAttribute('server', CONFIG.discordServer);
+  if (CONFIG.discordChannel) embed.setAttribute('channel', CONFIG.discordChannel);
+  embed.setAttribute('width', '100%');
+  embed.setAttribute('height', '100%');
+  $('chatWrap').appendChild(embed);
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/@widgetbot/html-embed';
+  document.body.appendChild(script);
 }
 
 /* ---------- Fotos QC ---------- */
