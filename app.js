@@ -4,7 +4,7 @@
 const CONFIG = {
   brand: 'Salty',
   refCode: 'GRAS35',
-  homeUrl: 'https://usfans.com/product/3/7724623608?ref=GRAS35',
+  homeUrl: 'https://usfans.com/register?ref=GRAS35',   // sin www: misma sesión que los productos
 
   // URL del CSV publicado de Google Sheets
   // (Archivo → Compartir → Publicar en la Web → pestaña de productos → CSV).
@@ -170,7 +170,12 @@ const norm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toL
 function withRef(url) {
   try {
     const u = new URL(url);
-    if (/(^|\.)usfans\.com$/i.test(u.hostname)) u.searchParams.set('ref', CONFIG.refCode);
+    if (/(^|\.)usfans\.com$/i.test(u.hostname)) {
+      // www.usfans.com y usfans.com guardan la sesión por separado: todo va a usfans.com
+      // para que la sesión iniciada en el iframe sirva en todas las páginas
+      u.hostname = 'usfans.com';
+      u.searchParams.set('ref', CONFIG.refCode);
+    }
     return u.toString();
   } catch {
     return url;
