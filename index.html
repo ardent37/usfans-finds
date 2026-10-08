@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Salty Finds</title>
+  <meta name="description" content="Busca entre miles de productos y cómpralos con USFans sin salir de la página.">
+  <meta name="theme-color" content="#f5f5f7" id="themeColor">
+  <script>
+    // Tema claro por defecto; el oscuro solo si el usuario lo eligió antes
+    try { if (localStorage.getItem('theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch (e) {}
+    // Idioma: el elegido antes o, si no, el del navegador (español o inglés)
+    (function () {
+      var lang = null;
+      try { lang = localStorage.getItem('lang'); } catch (e) {}
+      if (lang !== 'es' && lang !== 'en') lang = /^es/i.test(navigator.language || '') ? 'es' : 'en';
+      document.documentElement.lang = lang;
+    })();
+  </script>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%231d1d1f'/%3E%3Ctext x='16' y='22.5' font-family='-apple-system,Segoe UI,sans-serif' font-size='18' font-weight='700' fill='%23fff' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="styles.css?v=8">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" defer></script>
+  <script src="app.js?v=8" defer></script>
+</head>
+<body>
+  <div class="app" id="app">
+    <!-- Panel lateral de herramientas -->
+    <aside class="drawer" id="drawer" aria-label="Herramientas">
+      <header class="drawer-head">
+        <div class="brand">
+          <img class="logo-light" src="logo-light.png" alt="USFans+" width="1270" height="232">
+          <img class="logo-dark" src="logo-dark.png" alt="" aria-hidden="true" width="1270" height="232">
+        </div>
+        <div class="head-actions">
+        <div class="lang-switch" role="group" data-i18n-attr="aria-label:language">
+          <button type="button" data-lang="es" lang="es">ES</button>
+          <button type="button" data-lang="en" lang="en">EN</button>
+        </div>
+        <button class="icon-btn" id="themeToggle" aria-pressed="false">
+          <svg class="ico-moon" viewBox="0 0 24 24" width="17" height="17"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          <svg class="ico-sun" viewBox="0 0 24 24" width="17" height="17"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <button class="icon-btn" id="closeDrawer" data-i18n-attr="title:hidePanel;aria-label:hidePanel">
+          <svg viewBox="0 0 24 24" width="18" height="18"><rect x="3.5" y="4.5" width="17" height="15" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9.5 4.5v15" stroke="currentColor" stroke-width="1.6"/></svg>
+        </button>
+        </div>
+      </header>
+
+      <nav class="tools" id="tools" role="tablist" hidden></nav>
+
+      <section class="tool" id="tool-products" role="tabpanel">
+        <div class="search-wrap">
+          <svg class="search-ico" viewBox="0 0 24 24" width="16" height="16"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input id="search" type="search" data-i18n-attr="placeholder:search;aria-label:searchLabel" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="filters" id="filters">
+          <button class="chip-arrow prev" id="chipsPrev" data-i18n-attr="aria-label:prevCats" tabindex="-1">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="chips" id="chips" role="toolbar" data-i18n-attr="aria-label:categories"></div>
+          <button class="chip-arrow next" id="chipsNext" data-i18n-attr="aria-label:nextCats" tabindex="-1">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div class="list-head">
+          <p class="count" id="count" data-i18n="loading">Cargando productos…</p>
+          <div class="sort-wrap">
+            <select id="sort" data-i18n-attr="aria-label:sortLabel">
+              <option value="default" data-i18n="sortDefault">Destacados</option>
+              <option value="price-asc" data-i18n="sortPriceAsc">Precio ↑</option>
+              <option value="price-desc" data-i18n="sortPriceDesc">Precio ↓</option>
+              <option value="name" data-i18n="sortName">Nombre A–Z</option>
+            </select>
+          </div>
+        </div>
+        <div class="list" id="list">
+          <div class="grid" id="grid"></div>
+          <div class="sentinel" id="sentinel"></div>
+        </div>
+      </section>
+    </aside>
+
+    <!-- Zona principal: USFans incrustado -->
+    <main class="main">
+      <div class="bar">
+        <button class="btn ghost" id="openDrawer" data-i18n-attr="aria-label:showProducts">
+          <svg viewBox="0 0 24 24" width="16" height="16"><rect x="3.5" y="4.5" width="17" height="15" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9.5 4.5v15" stroke="currentColor" stroke-width="1.6"/></svg>
+          <span data-i18n="products">Productos</span>
+        </button>
+        <div class="tabs" id="tabs" role="tablist" data-i18n-attr="aria-label:tabsLabel"></div>
+        <button class="icon-btn" id="newTab" data-i18n-attr="title:newTab;aria-label:newTab">
+          <svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <button class="btn ghost" id="goHome" data-i18n="goHome" hidden>← Registro</button>
+        <a class="btn" id="openTab" href="#" target="_blank" rel="noopener" data-i18n="openBrowser">Abrir en navegador</a>
+      </div>
+      <div class="frame-wrap" id="frames">
+        <div class="frame-loading" id="frameLoading"><span class="spinner"></span></div>
+      </div>
+      <p class="hint" data-i18n-html="hint">Haz clic derecho en un producto para ver más opciones. Si algo no carga o no puedes pagar, usa <strong>Abrir en navegador</strong>.</p>
+    </main>
+  </div>
+  <div class="menu" id="menu" role="menu" hidden></div>
+</body>
+</html>
