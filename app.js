@@ -220,7 +220,7 @@ const els = {
   frames: $('frames'), frameLoading: $('frameLoading'),
   tabs: $('tabs'), newTab: $('newTab'), menu: $('menu'),
   openTab: $('openTab'), goHome: $('goHome'),
-  openDrawer: $('openDrawer'), closeDrawer: $('closeDrawer'),
+  openDrawer: $('openDrawer'), closeDrawer: $('closeDrawer'), main: $('main'),
 };
 
 const state = {
@@ -764,31 +764,140 @@ function renderSkeleton(n = 8) {
 }
 
 function setDrawer(open) {
+  if (isMobile()) {
+    slideTo(open);
+    return;
+  }
+  applyDrawerState(open);
+}
+
+function applyDrawerState(open) {
   els.app.classList.toggle('collapsed', !open);
   if (!open) setExpanded(false);
   coachOnDrawer(open);
 }
 
 /* ---------- Deslizar en móvil ---------- */
-// Abrir: desde la lengüeta izquierda (o la guía). Cerrar: desde la lengüeta derecha o deslizando a la izquierda en el panel.
-// El panel sigue al dedo; al soltar se completa o vuelve según la distancia y la velocidad.
-const drag = { active: false, mode: null, x: 0, y: 0, lastX: 0, lastT: 0, v: 0 };
+// Las dos vistas son capas a pantalla completa y la que entra lo hace POR ENCIMA de la otra:
+//  - abrir:  el panel entra desde la izquierda sobre USFans (quieto); la lengüeta › va pegada a su borde derecho.
+//  - volver: USFans entra desde la derecha sobre el panel (quieto); la lengüeta ‹ va pegada a su borde izquierdo.
+// Todo se mueve con un único progreso p (0 = USFans, 1 = panel), calculado en cada fotograma.
+const slide = { p: 0, dir: 'open', raf: 0 };
+const TAB_W = 26;
 
-function dragStart(mode, x, y) {
-  Object.assign(drag, { active: false, mode, x, y, lastX: x, lastT: performance.now(), v: 0 });
+function renderSlide(p, dir) {
+  slide.p = p;
+  slide.dir = dir;
+  const w = window.innerWidth;
+  const tabL = $('swipeEdge');
+  const tabR = $('swipeBack');
+  if (dir === 'open') {
+    els.app.classList.remove('main-front');
+    els.drawer.style.transform = `translateX(${(p - 1) * w}px)`;
+    els.main.style.transform = 'translateX(0)';
+    tabL.style.transform = `translateX(${p * w}px)`;
+    tabL.style.visibility = 'visible';
+    tabR.style.visibility = 'hidden';
+  } else {
+    els.app.classList.add('main-front');
+    els.drawer.style.transform = 'translateX(0)';
+    els.main.style.transform = `translateX(${p * w}px)`;
+    tabR.style.transform = `translateX(${(p - 1) * w}px)`;
+    tabR.style.visibility = 'visible';
+    tabL.style.visibility = 'hidden';
+  }
+}
+
+// Posición de reposo. Si ha cambiado de vista, la lengüeta del otro lado asoma deslizándose desde el borde.
+function settleSlide(open, changed) {
+  const w = window.innerWidth;
+  const tabL = $('swipeEdge');
+  const tabR = $('swipeBack');
+  if (open) {
+    els.app.classList.remove('main-front');
+    els.drawer.style.transform = 'translateX(0)';
+    els.main.style.transform = `translateX(${w}px)`; // queda debajo del panel, fuera de la vista
+    tabL.style.visibility = 'hidden';
+    tabR.style.visibility = 'visible';
+    tabR.style.transform = 'translateX(0)';
+    if (changed) tabR.animate([{ transform: `translateX(${TAB_W + 6}px)` }, { transform: 'translateX(0)' }], { duration: 320, easing: 'cubic-bezier(.32,.72,0,1)' });
+  } else {
+    els.app.classList.add('main-front');
+    els.main.style.transform = 'translateX(0)';
+    els.drawer.style.transform = `translateX(${-w}px)`; // queda debajo de USFans, fuera de la vista
+    tabR.style.visibility = 'hidden';
+    tabL.style.visibility = 'visible';
+    tabL.style.transform = 'translateX(0)';
+    if (changed) tabL.animate([{ transform: `translateX(${-TAB_W - 6}px)` }, { transform: 'translateX(0)' }], { duration: 320, easing: 'cubic-bezier(.32,.72,0,1)' });
+  }
+  slide.p = open ? 1 : 0;
+  slide.dir = open ? 'close' : 'open';
+  applyDrawerState(open);
+}
+
+// Anima el progreso hasta el destino con una curva suave; la duración depende de lo que falte por recorrer
+function animateSlide(dir, target) {
+  cancelAnimationFrame(slide.raf);
+  const from = slide.p;
+  const wasOpen = !els.app.classList.contains('collapsed');
+  const dist = Math.abs(target - from);
+  const duration = Math.max(180, 420 * dist);
+  const t0 = performance.now();
+  const ease = (x) => 1 - Math.pow(1 - x, 3);
+  const step = (now) => {
+    const k = Math.min(1, (now - t0) / duration);
+    renderSlide(from + (target - from) * ease(k), dir);
+    if (k < 1) {
+      slide.raf = requestAnimationFrame(step);
+    } else {
+      slide.raf = 0;
+      const open = target === 1;
+      settleSlide(open, open !== wasOpen);
+    }
+  };
+  slide.raf = requestAnimationFrame(step);
+}
+
+// Abrir o cerrar con animación (botones, toques en la lengüeta…)
+function slideTo(open) {
+  const isOpen = !els.app.classList.contains('collapsed');
+  if (open === isOpen && !slide.raf) return settleSlide(open, false);
+  if (open) {
+    if (slide.dir !== 'open') renderSlide(0, 'open');
+    animateSlide('open', 1);
+  } else {
+    if (slide.dir !== 'close') renderSlide(1, 'close');
+    animateSlide('close', 0);
+  }
+}
+
+function resetSlideStyles() {
+  [els.drawer, els.main, $('swipeEdge'), $('swipeBack')].forEach((el) => {
+    el.style.transform = '';
+    el.style.visibility = '';
+  });
+  els.app.classList.remove('main-front');
+}
+
+// --- Gestos ---
+const drag = { active: false, dir: 'open', x: 0, y: 0, lastX: 0, lastT: 0, v: 0 };
+
+function dragStart(dir, x, y) {
+  cancelAnimationFrame(slide.raf);
+  slide.raf = 0;
+  Object.assign(drag, { active: false, dir, x, y, lastX: x, lastT: performance.now(), v: 0 });
 }
 
 function dragActivate() {
   drag.active = true;
-  els.app.classList.add('swiping');
   $('coach').classList.add('dragging');
 }
 
 function dragMove(x) {
   const w = window.innerWidth;
   const dx = x - drag.x;
-  const offset = drag.mode === 'open' ? Math.min(0, -w + dx) : Math.min(0, dx);
-  els.drawer.style.transform = `translateX(${offset}px)`;
+  const p = drag.dir === 'open' ? Math.min(1, Math.max(0, dx / w)) : Math.min(1, Math.max(0, 1 + dx / w));
+  renderSlide(p, drag.dir);
   const now = performance.now();
   drag.v = (x - drag.lastX) / Math.max(1, now - drag.lastT);
   drag.lastX = x;
@@ -799,36 +908,33 @@ function dragEnd(x) {
   $('coach').classList.remove('dragging');
   if (!drag.active) return;
   drag.active = false;
-  const dx = x - drag.x;
   const w = window.innerWidth;
-  els.app.classList.remove('swiping');
-  els.drawer.style.transform = '';
-  const open = drag.mode === 'open' ? dx > w * 0.3 || drag.v > 0.35 : !(dx < -w * 0.3 || drag.v < -0.35);
-  setDrawer(open);
+  const dx = x - drag.x;
+  const open = drag.dir === 'open' ? dx > w * 0.3 || drag.v > 0.35 : !(dx < -w * 0.3 || drag.v < -0.35);
+  animateSlide(drag.dir, open ? 1 : 0);
 }
 
 function dragCancel() {
   $('coach').classList.remove('dragging');
   if (!drag.active) return;
   drag.active = false;
-  els.app.classList.remove('swiping');
-  els.drawer.style.transform = '';
+  animateSlide(drag.dir, drag.dir === 'open' ? 0 : 1);
 }
 
 // Lengüetas y guía: solo sirven para deslizar, así que se quedan el puntero desde el primer momento
-function bindPullTarget(el, getMode) {
+function bindPullTarget(el, getDir) {
   let id = null;
   el.addEventListener('pointerdown', (e) => {
     if (!isMobile() || (e.pointerType === 'mouse' && e.button !== 0)) return;
     id = e.pointerId;
     try { el.setPointerCapture(id); } catch (err) { /* sin captura */ }
-    dragStart(getMode(), e.clientX, e.clientY);
+    dragStart(getDir(), e.clientX, e.clientY);
   });
   el.addEventListener('pointermove', (e) => {
     if (e.pointerId !== id) return;
     const dx = e.clientX - drag.x;
     if (!drag.active) {
-      if (Math.abs(dx) < 6 || (drag.mode === 'open' ? dx < 0 : dx > 0)) return;
+      if (Math.abs(dx) < 6 || (drag.dir === 'open' ? dx < 0 : dx > 0)) return;
       dragActivate();
     }
     dragMove(e.clientX);
@@ -839,7 +945,7 @@ function bindPullTarget(el, getMode) {
     const moved = drag.active;
     dragEnd(e.clientX);
     // Un toque sin arrastrar en una lengüeta también cambia de vista
-    if (!moved && el.classList.contains('pull-tab')) setDrawer(drag.mode === 'open');
+    if (!moved && el.classList.contains('pull-tab')) setDrawer(drag.dir === 'open');
   });
   el.addEventListener('pointercancel', (e) => {
     if (e.pointerId !== id) return;
@@ -849,11 +955,11 @@ function bindPullTarget(el, getMode) {
 }
 
 // Panel: bloqueo de dirección. En los primeros píxeles se decide si el gesto es horizontal
-// (mueve el panel y se bloquea el scroll) o vertical (scroll normal, el panel no se mueve).
+// (trae USFans por encima y se bloquea el scroll) o vertical (scroll normal, nada se mueve).
 function bindDrawerSwipe() {
   const drawer = els.drawer;
   const ignore = (t) => t.closest('.chips, input, textarea, select, .chat-wrap, .lightbox');
-  let lock = null; // null = sin decidir, 'x' = deslizar panel, 'y' = scroll
+  let lock = null; // null = sin decidir, 'x' = deslizar, 'y' = scroll
 
   drawer.addEventListener('touchstart', (e) => {
     lock = null;
@@ -869,7 +975,6 @@ function bindDrawerSwipe() {
     const dy = p.clientY - drag.y;
     if (lock === null) {
       if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
-      // Horizontal hacia la izquierda y claramente más horizontal que vertical
       if (dx < 0 && Math.abs(dx) > Math.abs(dy) * 1.2) {
         lock = 'x';
         dragActivate();
@@ -897,6 +1002,14 @@ function setupSwipe() {
   bindPullTarget($('swipeBack'), () => 'close');
   bindPullTarget($('coach'), () => (els.app.classList.contains('collapsed') ? 'open' : 'close'));
   bindDrawerSwipe();
+  // Al girar el móvil o cambiar entre móvil y escritorio, todo vuelve a su sitio
+  let wasMobile = isMobile();
+  window.addEventListener('resize', () => {
+    const mobile = isMobile();
+    if (mobile) settleSlide(!els.app.classList.contains('collapsed'), false);
+    else if (wasMobile) resetSlideStyles();
+    wasMobile = mobile;
+  });
 }
 
 /* ---------- Guía de gestos (primera vez en móvil) ---------- */
@@ -1276,7 +1389,7 @@ async function init() {
   setupChipScroll();
 
   createTab(CONFIG.homeUrl, HOME_TITLE);
-  if (isMobile()) setDrawer(false);
+  if (isMobile()) settleSlide(false, false); // en móvil se empieza en USFans, sin animación
   startCoach();
 
   els.openDrawer.onclick = () => setDrawer(els.app.classList.contains('collapsed'));

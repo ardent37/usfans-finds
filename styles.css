@@ -734,9 +734,20 @@ button { -webkit-tap-highlight-color: transparent; }
     margin-left: 0;
     -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
-    transition: transform .45s var(--ease);
   }
   .app.collapsed .drawer { margin-left: 0; transform: translateX(-100%); }
+  .main {
+    position: fixed;
+    inset: 0;
+    z-index: 19;
+    background: var(--canvas);
+    will-change: transform;
+  }
+  /* Al volver a USFans, su capa va por encima del panel */
+  .app.main-front .main { z-index: 21; }
+  /* Sombra en el borde de la capa que entra, para dar profundidad al superponerse */
+  .drawer { box-shadow: 14px 0 34px rgba(0, 0, 0, .16); }
+  .app.main-front .main { box-shadow: -14px 0 34px rgba(0, 0, 0, .16); }
   .app.collapsed #openDrawer, .app:not(.collapsed) #openDrawer { display: inline-flex; }
   .main, .app.collapsed .main { padding: 0 8px; }
   .bar { gap: 4px; padding: 0; }
@@ -755,9 +766,8 @@ button { -webkit-tap-highlight-color: transparent; }
   .list, .qc-result { padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
   .chat-wrap { margin-bottom: calc(16px + env(safe-area-inset-bottom)); }
 
-  /* Deslizar: el panel sigue al dedo (la dirección del gesto se decide en JS) */
+  /* Deslizar: las capas siguen al dedo (la dirección del gesto se decide en JS) */
   .drawer { will-change: transform; }
-  .app.swiping .drawer { transition: none; }
 }
 
 /* ---------- Lengüetas para deslizar (solo móvil) ---------- */
@@ -980,6 +990,5 @@ body.coaching .pull-tab-grip { box-shadow: 0 0 0 0 color-mix(in srgb, var(--acce
 
 /* Las lengüetas van después de su regla base para poder mostrarse: la izquierda con USFans a la vista, la derecha con el panel abierto */
 @media (max-width: 820px) {
-  .app.collapsed ~ .pull-left { display: block; }
-  .app:not(.collapsed) ~ .pull-right { display: block; }
+  .pull-tab { display: block; will-change: transform; }
 }
