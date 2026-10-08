@@ -755,105 +755,128 @@ button { -webkit-tap-highlight-color: transparent; }
   .list, .qc-result { padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
   .chat-wrap { margin-bottom: calc(16px + env(safe-area-inset-bottom)); }
 
-  /* Deslizar: el panel sigue al dedo; el navegador solo gestiona el scroll vertical */
-  .drawer { touch-action: pan-y; will-change: transform; }
+  /* Deslizar: el panel sigue al dedo (la dirección del gesto se decide en JS) */
+  .drawer { will-change: transform; }
   .app.swiping .drawer { transition: none; }
 }
 
-/* ---------- Franja del borde izquierdo (solo móvil) ---------- */
-.swipe-edge {
+/* ---------- Lengüetas para deslizar (solo móvil) ---------- */
+.pull-tab {
   display: none;
   position: fixed;
-  top: calc(var(--bar-h) + env(safe-area-inset-top));
-  bottom: 0;
-  left: 0;
-  z-index: 15;
-  width: 22px;
+  top: 50%;
+  z-index: 25;
+  width: 34px;
+  height: 120px;
+  margin-top: -60px;
   touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: grab;
 }
-.swipe-edge span {
+.pull-left { left: 0; }
+.pull-right { right: 0; }
+.pull-tab-grip {
   position: absolute;
   top: 50%;
-  left: 3px;
-  width: 4px;
-  height: 46px;
-  margin-top: -23px;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--ink) 28%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--canvas) 60%, transparent);
+  width: 26px;
+  height: 64px;
+  margin-top: -32px;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .18), 0 0 0 .5px var(--hairline);
+  transition: transform .25s var(--ease), box-shadow .25s;
 }
+.pull-left .pull-tab-grip { left: 0; border-radius: 0 14px 14px 0; }
+.pull-right .pull-tab-grip { right: 0; border-radius: 14px 0 0 14px; }
+.pull-tab:active .pull-tab-grip { transform: scale(1.06); }
+/* La flecha "empuja" suavemente hacia donde hay que deslizar */
+.pull-left svg { animation: nudgeRight 2.4s var(--ease) infinite; }
+.pull-right svg { animation: nudgeLeft 2.4s var(--ease) infinite; }
+@keyframes nudgeRight { 0%, 60%, 100% { transform: translateX(0); } 75% { transform: translateX(3px); } }
+@keyframes nudgeLeft { 0%, 60%, 100% { transform: translateX(0); } 75% { transform: translateX(-3px); } }
 
 /* ---------- Guía de gestos (primera vez en móvil) ---------- */
 .coach {
   position: fixed;
   inset: 0;
   z-index: 70;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: rgba(0, 0, 0, .28);
-  -webkit-backdrop-filter: blur(14px) saturate(120%);
-  backdrop-filter: blur(14px) saturate(120%);
+  background: rgba(0, 0, 0, .32);
+  -webkit-backdrop-filter: blur(12px) saturate(115%);
+  backdrop-filter: blur(12px) saturate(115%);
   touch-action: none;
-  opacity: 1;
   transition: opacity .3s ease;
   animation: fadeIn .35s ease;
 }
 .coach[hidden] { display: none; }
-.coach, .coach * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .coach.dragging { opacity: 0; }
-.coach-card {
-  width: min(320px, 100%);
-  padding: 26px 22px 18px;
-  border-radius: 24px;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, .25), 0 0 0 .5px var(--hairline);
-  text-align: center;
-  animation: coachIn .5s var(--ease);
-}
-@keyframes coachIn { from { opacity: 0; transform: translateY(16px) scale(.97); } }
-.coach-demo {
-  position: relative;
-  height: 64px;
-  margin: 0 8px 14px;
-  color: var(--ink);
-}
-.coach-track {
+.coach, .coach * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+/* La lengüeta que hay que deslizar queda nítida por encima del desenfoque, con un halo */
+body.coaching .pull-tab { z-index: 71; }
+body.coaching .pull-tab-grip { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent), 0 2px 10px rgba(0, 0, 0, .25); animation: halo 1.8s ease-out infinite; }
+@keyframes halo { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent), 0 2px 10px rgba(0, 0, 0, .25); } 100% { box-shadow: 0 0 0 16px transparent, 0 2px 10px rgba(0, 0, 0, .25); } }
+
+.coach-hint {
   position: absolute;
-  top: 50%;
-  left: 14px;
-  right: 14px;
+  top: calc(50% - 150px);
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, .35);
+  animation: coachIn .5s var(--ease) both;
+}
+.coach.step1 .coach-hint { left: 34px; right: 24px; text-align: left; }
+.coach.step2 .coach-hint { left: 24px; right: 34px; text-align: right; }
+@keyframes coachIn { from { opacity: 0; transform: translateY(10px); } }
+.coach-title { margin: 0 0 4px; font-family: "Geist", -apple-system, BlinkMacSystemFont, system-ui, sans-serif; font-size: 26px; font-weight: 600; line-height: 1.15; letter-spacing: -.025em; text-wrap: balance; }
+.coach-text { margin: 0; font-size: 15px; opacity: .9; text-wrap: balance; }
+
+/* Gesto animado: sale de la lengüeta y recorre la pantalla dejando una estela */
+.coach-gesture { position: absolute; top: 50%; left: 0; right: 0; height: 60px; margin-top: -8px; pointer-events: none; }
+.coach-trail {
+  position: absolute;
+  top: 6px;
   height: 6px;
-  margin-top: -3px;
   border-radius: 6px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 55%, transparent));
-  transform-origin: left center;
-  animation: coachTrack 1.8s var(--ease) infinite;
+  width: 58vw;
+  transform: scaleX(0);
+  animation: trail 2s var(--ease) infinite;
 }
-.coach-hand { position: absolute; top: 8px; left: 0; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .2)); animation: coachHand 1.8s var(--ease) infinite; }
-.coach-demo.left .coach-track { background: linear-gradient(270deg, transparent, color-mix(in srgb, var(--accent) 55%, transparent)); transform-origin: right center; }
-.coach-demo.left .coach-hand { left: auto; right: 0; animation-name: coachHandLeft; }
-@keyframes coachHand {
-  0% { transform: translateX(0) scale(1); opacity: 0; }
-  12% { opacity: 1; transform: translateX(0) scale(.92); }
-  70% { transform: translateX(calc(min(320px, 80vw) - 140px)) scale(.92); opacity: 1; }
-  100% { transform: translateX(calc(min(320px, 80vw) - 140px)) scale(1); opacity: 0; }
+.coach-hand { position: absolute; top: 0; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .35)); animation: handRight 2s var(--ease) infinite; }
+.coach.step1 .coach-trail { left: 18px; transform-origin: left center; background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 0%, transparent), var(--accent)); }
+.coach.step1 .coach-hand { left: 10px; }
+.coach.step2 .coach-trail { right: 18px; transform-origin: right center; background: linear-gradient(270deg, color-mix(in srgb, var(--accent) 0%, transparent), var(--accent)); }
+.coach.step2 .coach-hand { right: 10px; animation-name: handLeft; }
+@keyframes handRight {
+  0% { transform: translateX(0) scale(1.05); opacity: 0; }
+  12% { transform: translateX(0) scale(.92); opacity: 1; }
+  68% { transform: translateX(58vw) scale(.92); opacity: 1; }
+  100% { transform: translateX(58vw) scale(1); opacity: 0; }
 }
-@keyframes coachHandLeft {
-  0% { transform: translateX(0) scale(1); opacity: 0; }
-  12% { opacity: 1; transform: translateX(0) scale(.92); }
-  70% { transform: translateX(calc(140px - min(320px, 80vw))) scale(.92); opacity: 1; }
-  100% { transform: translateX(calc(140px - min(320px, 80vw))) scale(1); opacity: 0; }
+@keyframes handLeft {
+  0% { transform: translateX(0) scale(1.05); opacity: 0; }
+  12% { transform: translateX(0) scale(.92); opacity: 1; }
+  68% { transform: translateX(-58vw) scale(.92); opacity: 1; }
+  100% { transform: translateX(-58vw) scale(1); opacity: 0; }
 }
-@keyframes coachTrack {
-  0%, 12% { transform: scaleX(0); opacity: 1; }
-  70% { transform: scaleX(1); opacity: 1; }
-  100% { transform: scaleX(1); opacity: 0; }
+@keyframes trail { 0%, 12% { transform: scaleX(0); opacity: 1; } 68% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
+
+.coach-skip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(28px + env(safe-area-inset-bottom));
+  translate: -50% 0;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, .18);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
 }
-.coach-title { margin: 0 0 4px; font-family: "Geist", -apple-system, BlinkMacSystemFont, system-ui, sans-serif; font-size: 20px; font-weight: 600; letter-spacing: -.02em; text-wrap: balance; }
-.coach-text { margin: 0; color: var(--muted); font-size: 14px; text-wrap: balance; }
-.coach-skip { margin-top: 16px; padding: 8px 14px; border: 0; border-radius: var(--r-pill); background: transparent; color: var(--muted); font-size: 13px; cursor: pointer; }
-.coach-skip:active { background: var(--fill); }
+.coach-skip:active { background: rgba(255, 255, 255, .3); }
 @media (min-width: 1400px) {
   :root { --drawer-w: 470px; }
 }
@@ -955,8 +978,8 @@ button { -webkit-tap-highlight-color: transparent; }
 .chat-wrap:empty { display: none; }
 .chat-wrap widgetbot { display: block; width: 100%; height: 100%; }
 
-/* La franja va después de su regla base para poder mostrarse; solo con USFans a la vista */
+/* Las lengüetas van después de su regla base para poder mostrarse: la izquierda con USFans a la vista, la derecha con el panel abierto */
 @media (max-width: 820px) {
-  .swipe-edge { display: block; }
-  .app:not(.collapsed) ~ .swipe-edge { display: none; }
+  .app.collapsed ~ .pull-left { display: block; }
+  .app:not(.collapsed) ~ .pull-right { display: block; }
 }

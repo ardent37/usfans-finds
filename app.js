@@ -109,9 +109,9 @@ const I18N = {
     qcSize: '{l}×{w}×{h} cm',
     qcOpenProduct: 'Abrir producto',
     viewQc: 'Ver fotos QC',
-    coachOpenTitle: 'Desliza hacia la derecha',
+    coachOpenTitle: 'Desliza desde aquí →',
     coachOpenText: 'para ver los productos y las herramientas.',
-    coachCloseTitle: 'Desliza hacia la izquierda',
+    coachCloseTitle: '← Desliza desde aquí',
     coachCloseText: 'para volver a USFans.',
     coachSkip: 'Saltar',
     spreadsheet: 'Spreadsheet',
@@ -183,9 +183,9 @@ const I18N = {
     qcSize: '{l}×{w}×{h} cm',
     qcOpenProduct: 'Open product',
     viewQc: 'View QC photos',
-    coachOpenTitle: 'Swipe right',
+    coachOpenTitle: 'Swipe from here →',
     coachOpenText: 'to see the products and tools.',
-    coachCloseTitle: 'Swipe left',
+    coachCloseTitle: '← Swipe from here',
     coachCloseText: 'to go back to USFans.',
     coachSkip: 'Skip',
     spreadsheet: 'Spreadsheet',
@@ -770,91 +770,137 @@ function setDrawer(open) {
 }
 
 /* ---------- Deslizar en móvil ---------- */
-// Abrir: desde la franja del borde izquierdo (o desde la guía). Cerrar: deslizando a la izquierda sobre el panel.
-// El panel sigue al dedo y al soltar se completa o vuelve según la distancia y la velocidad.
-function setupSwipe() {
+// Abrir: desde la lengüeta izquierda (o la guía). Cerrar: desde la lengüeta derecha o deslizando a la izquierda en el panel.
+// El panel sigue al dedo; al soltar se completa o vuelve según la distancia y la velocidad.
+const drag = { active: false, mode: null, x: 0, y: 0, lastX: 0, lastT: 0, v: 0 };
+
+function dragStart(mode, x, y) {
+  Object.assign(drag, { active: false, mode, x, y, lastX: x, lastT: performance.now(), v: 0 });
+}
+
+function dragActivate() {
+  drag.active = true;
+  els.app.classList.add('swiping');
+  $('coach').classList.add('dragging');
+}
+
+function dragMove(x) {
+  const w = window.innerWidth;
+  const dx = x - drag.x;
+  const offset = drag.mode === 'open' ? Math.min(0, -w + dx) : Math.min(0, dx);
+  els.drawer.style.transform = `translateX(${offset}px)`;
+  const now = performance.now();
+  drag.v = (x - drag.lastX) / Math.max(1, now - drag.lastT);
+  drag.lastX = x;
+  drag.lastT = now;
+}
+
+function dragEnd(x) {
+  $('coach').classList.remove('dragging');
+  if (!drag.active) return;
+  drag.active = false;
+  const dx = x - drag.x;
+  const w = window.innerWidth;
+  els.app.classList.remove('swiping');
+  els.drawer.style.transform = '';
+  const open = drag.mode === 'open' ? dx > w * 0.3 || drag.v > 0.35 : !(dx < -w * 0.3 || drag.v < -0.35);
+  setDrawer(open);
+}
+
+function dragCancel() {
+  $('coach').classList.remove('dragging');
+  if (!drag.active) return;
+  drag.active = false;
+  els.app.classList.remove('swiping');
+  els.drawer.style.transform = '';
+}
+
+// Lengüetas y guía: solo sirven para deslizar, así que se quedan el puntero desde el primer momento
+function bindPullTarget(el, getMode) {
+  let id = null;
+  el.addEventListener('pointerdown', (e) => {
+    if (!isMobile() || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    id = e.pointerId;
+    try { el.setPointerCapture(id); } catch (err) { /* sin captura */ }
+    dragStart(getMode(), e.clientX, e.clientY);
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== id) return;
+    const dx = e.clientX - drag.x;
+    if (!drag.active) {
+      if (Math.abs(dx) < 6 || (drag.mode === 'open' ? dx < 0 : dx > 0)) return;
+      dragActivate();
+    }
+    dragMove(e.clientX);
+  });
+  el.addEventListener('pointerup', (e) => {
+    if (e.pointerId !== id) return;
+    id = null;
+    const moved = drag.active;
+    dragEnd(e.clientX);
+    // Un toque sin arrastrar en una lengüeta también cambia de vista
+    if (!moved && el.classList.contains('pull-tab')) setDrawer(drag.mode === 'open');
+  });
+  el.addEventListener('pointercancel', (e) => {
+    if (e.pointerId !== id) return;
+    id = null;
+    dragCancel();
+  });
+}
+
+// Panel: bloqueo de dirección. En los primeros píxeles se decide si el gesto es horizontal
+// (mueve el panel y se bloquea el scroll) o vertical (scroll normal, el panel no se mueve).
+function bindDrawerSwipe() {
   const drawer = els.drawer;
-  let g = null;
+  const ignore = (t) => t.closest('.chips, input, textarea, select, .chat-wrap, .lightbox');
+  let lock = null; // null = sin decidir, 'x' = deslizar panel, 'y' = scroll
 
-  const begin = (e, mode) => {
-    if (!isMobile() || g || (e.pointerType === 'mouse' && e.button !== 0)) return;
-    g = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), mode, dragging: false, lastX: e.clientX, lastT: performance.now(), v: 0, el: e.currentTarget };
-    // La franja del borde y la guía solo sirven para deslizar: se quedan el puntero desde el primer momento
-    if (e.currentTarget !== drawer) {
-      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) { /* sin captura */ }
+  drawer.addEventListener('touchstart', (e) => {
+    lock = null;
+    if (!isMobile() || e.touches.length !== 1 || ignore(e.target)) { lock = 'y'; return; }
+    const p = e.touches[0];
+    dragStart('close', p.clientX, p.clientY);
+  }, { passive: true });
+
+  drawer.addEventListener('touchmove', (e) => {
+    if (lock === 'y') return;
+    const p = e.touches[0];
+    const dx = p.clientX - drag.x;
+    const dy = p.clientY - drag.y;
+    if (lock === null) {
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      // Horizontal hacia la izquierda y claramente más horizontal que vertical
+      if (dx < 0 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+        lock = 'x';
+        dragActivate();
+      } else {
+        lock = 'y';
+        return;
+      }
     }
-  };
+    e.preventDefault(); // con el gesto horizontal bloqueado, la lista no hace scroll
+    dragMove(p.clientX);
+  }, { passive: false });
 
-  const move = (e) => {
-    if (!g || e.pointerId !== g.id) return;
-    const dx = e.clientX - g.x;
-    const dy = e.clientY - g.y;
-    if (!g.dragging) {
-      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-      // Gesto vertical o en la dirección contraria: no es nuestro
-      if (Math.abs(dy) > Math.abs(dx) || (g.mode === 'open' ? dx < 0 : dx > 0)) { g = null; return; }
-      g.dragging = true;
-      try { g.el.setPointerCapture(g.id); } catch (err) { /* sin captura */ }
-      els.app.classList.add('swiping');
-      $('coach').classList.add('dragging');
-    }
-    const w = window.innerWidth;
-    const offset = g.mode === 'open' ? Math.min(0, -w + dx) : Math.min(0, dx);
-    drawer.style.transform = `translateX(${offset}px)`;
-    const now = performance.now();
-    g.v = (e.clientX - g.lastX) / Math.max(1, now - g.lastT);
-    g.lastX = e.clientX;
-    g.lastT = now;
-  };
+  drawer.addEventListener('touchend', (e) => {
+    if (lock === 'x') dragEnd(e.changedTouches[0].clientX);
+    lock = null;
+  });
+  drawer.addEventListener('touchcancel', () => {
+    if (lock === 'x') dragCancel();
+    lock = null;
+  });
+}
 
-  const end = (e) => {
-    if (!g || e.pointerId !== g.id) return;
-    const s = g;
-    g = null;
-    $('coach').classList.remove('dragging');
-    if (!s.dragging) return;
-    const dx = e.clientX - s.x;
-    const w = window.innerWidth;
-    els.app.classList.remove('swiping');
-    drawer.style.transform = '';
-    const open = s.mode === 'open'
-      ? dx > w * 0.3 || s.v > 0.35
-      : !(dx < -w * 0.3 || s.v < -0.35);
-    setDrawer(open);
-  };
-
-  const cancel = (e) => {
-    if (!g || e.pointerId !== g.id) return;
-    const s = g;
-    g = null;
-    $('coach').classList.remove('dragging');
-    if (s.dragging) {
-      els.app.classList.remove('swiping');
-      drawer.style.transform = '';
-    }
-  };
-
-  const bind = (el, mode, filter) => {
-    el.addEventListener('pointerdown', (e) => {
-      if (filter && !filter(e)) return;
-      begin(e, typeof mode === 'function' ? mode() : mode);
-    });
-    el.addEventListener('pointermove', move);
-    el.addEventListener('pointerup', end);
-    el.addEventListener('pointercancel', cancel);
-  };
-
-  bind($('swipeEdge'), 'open');
-  // Sobre el panel: no en las categorías (tienen su propio deslizamiento), campos de texto ni el chat
-  bind(drawer, 'close', (e) => !e.target.closest('.chips, input, textarea, select, .chat-wrap, .lightbox'));
-  // Sobre la guía: el gesto que toque en cada paso
-  bind($('coach'), () => (els.app.classList.contains('collapsed') ? 'open' : 'close'));
-  // Un toque en la pestañita del borde también abre
-  $('swipeEdge').addEventListener('click', () => setDrawer(true));
+function setupSwipe() {
+  bindPullTarget($('swipeEdge'), () => 'open');
+  bindPullTarget($('swipeBack'), () => 'close');
+  bindPullTarget($('coach'), () => (els.app.classList.contains('collapsed') ? 'open' : 'close'));
+  bindDrawerSwipe();
 }
 
 /* ---------- Guía de gestos (primera vez en móvil) ---------- */
-// Paso 1: deslizar a la derecha (productos). Al hacerlo, 2 s después, paso 2: deslizar a la izquierda (USFans).
+// Paso 1: deslizar la lengüeta izquierda (productos). Al hacerlo, 2 s después, paso 2: la derecha (USFans).
 const coach = { step: 0, timer: null };
 
 function coachDone() {
@@ -865,16 +911,23 @@ function finishCoach() {
   coach.step = 0;
   clearTimeout(coach.timer);
   $('coach').hidden = true;
+  document.body.classList.remove('coaching');
   try { localStorage.setItem('coachDone', '1'); } catch (e) { /* sin almacenamiento */ }
 }
 
 function showCoachStep(step) {
   coach.step = step;
   const left = step === 2;
-  $('coachDemo').classList.toggle('left', left);
+  const box = $('coach');
+  box.classList.toggle('step1', !left);
+  box.classList.toggle('step2', left);
   $('coachTitle').textContent = t(left ? 'coachCloseTitle' : 'coachOpenTitle');
   $('coachText').textContent = t(left ? 'coachCloseText' : 'coachOpenText');
-  $('coach').hidden = false;
+  // Reinicia las animaciones al cambiar de paso
+  box.hidden = true;
+  void box.offsetWidth;
+  box.hidden = false;
+  document.body.classList.add('coaching');
 }
 
 function coachOnDrawer(open) {
@@ -882,6 +935,7 @@ function coachOnDrawer(open) {
   if (coach.step === 1 && open) {
     coach.step = -1; // esperando el paso 2
     $('coach').hidden = true;
+    document.body.classList.remove('coaching');
     coach.timer = setTimeout(() => {
       if (!els.app.classList.contains('collapsed')) showCoachStep(2);
       else finishCoach();
@@ -893,6 +947,7 @@ function coachOnDrawer(open) {
 
 function startCoach() {
   if (!isMobile() || coachDone()) return;
+  $('coachSkip').addEventListener('pointerdown', (e) => e.stopPropagation());
   $('coachSkip').onclick = finishCoach;
   setTimeout(() => {
     if (els.app.classList.contains('collapsed')) showCoachStep(1);
