@@ -21,9 +21,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="styles.css?v=10">
+  <link rel="stylesheet" href="styles.css?v=12">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" defer></script>
-  <script src="app.js?v=10" defer></script>
+  <script src="app.js?v=12" defer></script>
 </head>
 <body>
   <div class="app" id="app">
@@ -81,7 +81,34 @@
           <div class="sentinel" id="sentinel"></div>
         </div>
       </section>
+
+      <section class="tool" id="tool-qc" role="tabpanel" hidden>
+        <form class="qc-form" id="qcForm" autocomplete="off">
+          <div class="search-wrap">
+            <svg class="search-ico" viewBox="0 0 24 24" width="16" height="16"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <input id="qcInput" type="url" inputmode="url" spellcheck="false" data-i18n-attr="placeholder:qcPlaceholder;aria-label:qcPlaceholder">
+          </div>
+          <button class="btn qc-submit" type="submit" data-i18n="qcSearch">Buscar QC</button>
+        </form>
+        <p class="qc-help" data-i18n="qcHelp">Pega un enlace de Taobao, Weidian, 1688 o de cualquier agente.</p>
+        <div class="qc-result" id="qcResult" aria-live="polite"></div>
+      </section>
+
+      <section class="tool" id="tool-chat" role="tabpanel" hidden>
+        <div class="tool-empty">
+          <svg viewBox="0 0 24 24" width="40" height="40"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.6c-.5.4-1.3 0-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          <strong data-i18n="chatSoonTitle">Chat</strong>
+          <span data-i18n="chatSoonText">Muy pronto podrás chatear aquí.</span>
+        </div>
+      </section>
     </aside>
+
+    <!-- Divisor: arrastrar para cambiar el ancho del panel; la pestaña lo expande a pantalla completa -->
+    <div class="resizer" id="resizer" role="separator" aria-orientation="vertical" tabindex="0" data-i18n-attr="aria-label:resizePanel;title:resizePanel">
+      <button class="expand-tab" id="expandTab" type="button" data-i18n-attr="aria-label:expandPanel;title:expandPanel">
+        <svg viewBox="0 0 24 24" width="14" height="14"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
 
     <!-- Zona principal: USFans incrustado -->
     <main class="main">
@@ -104,5 +131,18 @@
     </main>
   </div>
   <div class="menu" id="menu" role="menu" hidden></div>
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" hidden>
+    <button class="lb-btn lb-close" id="lbClose" data-i18n-attr="aria-label:close">
+      <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <button class="lb-btn lb-prev" id="lbPrev" data-i18n-attr="aria-label:prevPhoto">
+      <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <img class="lb-img" id="lbImg" alt="">
+    <button class="lb-btn lb-next" id="lbNext" data-i18n-attr="aria-label:nextPhoto">
+      <svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <p class="lb-count" id="lbCount"></p>
+  </div>
 </body>
 </html>

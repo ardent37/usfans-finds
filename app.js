@@ -89,6 +89,32 @@ const I18N = {
     duplicate: 'Duplicar',
     closeOthers: 'Cerrar otras pestañas',
     kbdMiddleClick: 'Clic central',
+    toolQc: 'Fotos QC',
+    qcPlaceholder: 'Pega el enlace del producto',
+    qcSearch: 'Buscar QC',
+    qcHelp: 'Pega un enlace de Taobao, Weidian, 1688 o de cualquier agente.',
+    qcLoading: 'Buscando fotos QC…',
+    qcInvalidTitle: 'No reconozco ese enlace',
+    qcInvalidText: 'Prueba con un enlace de producto de Taobao, Weidian, 1688 o de un agente como USFans, CNFans o KakoBuy.',
+    qcEmptyTitle: 'Aún no hay fotos QC',
+    qcEmptyText: 'Nadie ha comprado este producto todavía a través de los agentes que consultamos.',
+    qcErrorTitle: 'No se pudo consultar',
+    qcErrorText: 'Inténtalo de nuevo en unos segundos.',
+    qcCount: '{n} fotos QC',
+    qcWeight: 'Peso aprox. {w} g',
+    qcSize: '{l}×{w}×{h} cm',
+    qcOpenProduct: 'Abrir producto',
+    viewQc: 'Ver fotos QC',
+    spreadsheet: 'Spreadsheet',
+    toolChat: 'Chat',
+    chatSoonTitle: 'Chat',
+    chatSoonText: 'Muy pronto podrás chatear aquí.',
+    resizePanel: 'Arrastra para cambiar el ancho (doble clic: tamaño original)',
+    expandPanel: 'Expandir panel',
+    restorePanel: 'Volver a mostrar USFans',
+    close: 'Cerrar',
+    prevPhoto: 'Foto anterior',
+    nextPhoto: 'Foto siguiente',
   },
   en: {
     language: 'Language',
@@ -132,6 +158,32 @@ const I18N = {
     duplicate: 'Duplicate',
     closeOthers: 'Close other tabs',
     kbdMiddleClick: 'Middle click',
+    toolQc: 'QC photos',
+    qcPlaceholder: 'Paste the product link',
+    qcSearch: 'Find QC',
+    qcHelp: 'Paste a Taobao, Weidian, 1688 or any agent link.',
+    qcLoading: 'Looking for QC photos…',
+    qcInvalidTitle: 'That link isn’t recognised',
+    qcInvalidText: 'Try a product link from Taobao, Weidian, 1688 or an agent such as USFans, CNFans or KakoBuy.',
+    qcEmptyTitle: 'No QC photos yet',
+    qcEmptyText: 'Nobody has bought this product through the agents we check yet.',
+    qcErrorTitle: 'Couldn’t check',
+    qcErrorText: 'Please try again in a few seconds.',
+    qcCount: '{n} QC photos',
+    qcWeight: 'Approx. weight {w} g',
+    qcSize: '{l}×{w}×{h} cm',
+    qcOpenProduct: 'Open product',
+    viewQc: 'View QC photos',
+    spreadsheet: 'Spreadsheet',
+    toolChat: 'Chat',
+    chatSoonTitle: 'Chat',
+    chatSoonText: 'Chat is coming soon.',
+    resizePanel: 'Drag to resize (double-click: default size)',
+    expandPanel: 'Expand panel',
+    restorePanel: 'Show USFans again',
+    close: 'Close',
+    prevPhoto: 'Previous photo',
+    nextPhoto: 'Next photo',
   },
 };
 
@@ -615,6 +667,8 @@ function productMenu(p) {
     '-',
     { icon: '↗', label: t('openInBrowser'), action: () => window.open(url, '_blank', 'noopener') },
     { icon: '⎘', label: t('copyLink'), action: () => navigator.clipboard?.writeText(url) },
+    '-',
+    { icon: '◎', label: t('viewQc'), action: () => searchQc(p.link) },
   ];
 }
 
@@ -656,21 +710,37 @@ function onProductClick(e) {
 
 /* ---------- Panel lateral y pestañas de herramientas ---------- */
 // Para añadir una herramienta: añade un <section class="tool" id="tool-xxx"> en index.html y una entrada aquí.
-const TOOLS = [{ id: 'products', labelKey: 'products' }];
+const TOOL_ICONS = {
+  products: '<svg viewBox="0 0 24 24" width="22" height="22"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 3.5v17" stroke="currentColor" stroke-width="1.6"/></svg>',
+  qc: '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M8.5 6l1.2-1.8c.2-.4.6-.7 1.1-.7h2.4c.5 0 .9.3 1.1.7L15.5 6H18a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 19H6a2.5 2.5 0 0 1-2.5-2.5v-8A2.5 2.5 0 0 1 6 6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
+  chat: '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.6c-.5.4-1.3 0-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
+};
+const TOOLS = [
+  { id: 'products', labelKey: 'spreadsheet' },
+  { id: 'qc', labelKey: 'toolQc' },
+  { id: 'chat', labelKey: 'toolChat' },
+];
+let activeTool = 'products';
 
 function renderTools() {
   els.tools.hidden = TOOLS.length < 2;
+  els.tools.replaceChildren();
   for (const t of TOOLS) {
     const b = document.createElement('button');
     b.role = 'tab';
-    b.textContent = I18N[lang][t.labelKey];
-    b.setAttribute('aria-selected', String(t === TOOLS[0]));
-    b.onclick = () => {
-      els.tools.querySelectorAll('button').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
-      TOOLS.forEach((x) => { $(`tool-${x.id}`).hidden = x !== t; });
-    };
+    b.innerHTML = `${TOOL_ICONS[t.id] || ''}<span></span>`;
+    b.lastChild.textContent = I18N[lang][t.labelKey];
+    b.setAttribute('aria-selected', String(t.id === activeTool));
+    b.onclick = () => showTool(t.id);
     els.tools.appendChild(b);
   }
+}
+
+function showTool(id) {
+  activeTool = id;
+  TOOLS.forEach((x) => { $(`tool-${x.id}`).hidden = x.id !== id; });
+  els.tools.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-selected', String(TOOLS[i].id === id)));
+  if (id === 'products') updateChipArrows();
 }
 
 function renderSkeleton(n = 8) {
@@ -680,6 +750,252 @@ function renderSkeleton(n = 8) {
 
 function setDrawer(open) {
   els.app.classList.toggle('collapsed', !open);
+  if (!open) setExpanded(false);
+}
+
+/* ---------- Ancho del panel y modo expandido ---------- */
+// El ancho elegido se recuerda en este navegador; con doble clic en el divisor se vuelve al de por defecto
+const DRAWER_MIN = 320;
+const MAIN_MIN = 380;
+
+function setDrawerWidth(px, save = true) {
+  const w = Math.round(Math.max(DRAWER_MIN, Math.min(px, window.innerWidth - MAIN_MIN)));
+  document.documentElement.style.setProperty('--drawer-w', `${w}px`);
+  updateChipArrows();
+  if (save) {
+    try { localStorage.setItem('drawerW', String(w)); } catch (e) { /* sin almacenamiento */ }
+  }
+}
+
+function setExpanded(on) {
+  els.app.classList.toggle('expanded', on);
+  const btn = $('expandTab');
+  const key = on ? 'restorePanel' : 'expandPanel';
+  btn.dataset.i18nAttr = `aria-label:${key};title:${key}`;
+  btn.setAttribute('aria-label', t(key));
+  btn.title = t(key);
+  requestAnimationFrame(updateChipArrows);
+}
+
+function setupResizer() {
+  const handle = $('resizer');
+  let saved = null;
+  try { saved = Number(localStorage.getItem('drawerW')); } catch (e) { /* sin almacenamiento */ }
+  if (saved) setDrawerWidth(saved, false);
+
+  $('expandTab').addEventListener('click', (e) => {
+    e.stopPropagation();
+    setExpanded(!els.app.classList.contains('expanded'));
+  });
+  $('expandTab').addEventListener('pointerdown', (e) => e.stopPropagation());
+
+  handle.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || els.app.classList.contains('expanded')) return;
+    e.preventDefault();
+    handle.setPointerCapture(e.pointerId);
+    els.app.classList.add('resizing');
+    const left = els.drawer.getBoundingClientRect().left;
+    const move = (ev) => setDrawerWidth(ev.clientX - left, false);
+    const up = (ev) => {
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+      els.app.classList.remove('resizing');
+      setDrawerWidth(ev.clientX - left);
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up);
+  });
+  handle.addEventListener('dblclick', (e) => {
+    if (e.target.closest('.expand-tab')) return;
+    document.documentElement.style.removeProperty('--drawer-w');
+    try { localStorage.removeItem('drawerW'); } catch (err) { /* sin almacenamiento */ }
+    updateChipArrows();
+  });
+  // Con teclado: flechas para cambiar el ancho
+  handle.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    setDrawerWidth(els.drawer.getBoundingClientRect().width + (e.key === 'ArrowRight' ? 24 : -24));
+  });
+  // Si la ventana se estrecha, el panel no puede dejar a USFans sin sitio
+  window.addEventListener('resize', () => {
+    const current = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--drawer-w'));
+    if (document.documentElement.style.getPropertyValue('--drawer-w')) setDrawerWidth(current, false);
+  });
+}
+
+/* ---------- Fotos QC ---------- */
+// Tiendas: el mismo número que usa USFans en sus URL (usfans.com/product/NÚMERO/ID)
+const PLATFORMS = [
+  { code: 3, name: 'Weidian', test: /weidian|youshop10|koudai/i },
+  { code: 1, name: '1688', test: /1688\.com|ali_?1688|(?:shop_type|platform|source)=1688|\/1688\//i },
+  { code: 2, name: 'Taobao', test: /taobao|tmall/i },
+];
+
+// Saca tienda e ID de cualquier enlace: tienda, USFans u otro agente (aunque lleve la URL codificada dentro)
+function parseProductLink(link) {
+  let full = String(link || '').trim();
+  const own = full.match(/usfans\.com\/product\/(\d+)\/(\d+)/i);
+  if (own) return { platform: Number(own[1]), id: own[2] };
+  for (let i = 0; i < 3; i++) {
+    try {
+      const d = decodeURIComponent(full);
+      if (d === full) break;
+      full = d;
+    } catch {
+      break;
+    }
+  }
+  const platform = PLATFORMS.find((p) => p.test.test(full));
+  if (!platform) return null;
+  const m = full.match(/itemid=(\d{6,})/i)
+    || full.match(/[?&](?:id|item_id|goods_?id|product_?id|offer_?id)=(\d{6,})/i)
+    || full.match(/offer\/(\d{6,})\.html/i)
+    || full.match(/(?:weidian|taobao|tmall|1688)\/(\d{6,})/i);
+  return m ? { platform: platform.code, id: m[1] } : null;
+}
+
+// Fuentes de fotos QC, en orden: sus fotos se muestran juntas en una sola galería (USFans primero).
+// Para añadir un agente: una entrada con fetch() que devuelva { images: [{ thumb, full }], info }.
+const USFANS_WATERMARK = 'watermark,image_d2F0ZXJtYXJrLnBuZz94LW9zcy1wcm9jZXNzPWltYWdlL3Jlc2l6ZSxQXzIw,g_ne,x_1,y_20';
+const usfansImage = (url, width) =>
+  `${url.split('?')[0]}?x-oss-process=image/auto-orient,1/${USFANS_WATERMARK}/resize,w_${width}/quality,q_82/format,webp`;
+
+const QC_SOURCES = [
+  {
+    name: 'USFans',
+    async fetch({ id }) {
+      const res = await fetch(`https://usfans.com/api/goods/estimate-info?goodsId=${encodeURIComponent(id)}`);
+      if (!res.ok) throw new Error(`USFans ${res.status}`);
+      const d = (await res.json()).data || {};
+      return {
+        images: (d.qcImages || []).map((u) => ({ thumb: usfansImage(u, 400), full: usfansImage(u, 1400) })),
+        info: { weight: d.weight, length: d.length, width: d.width, height: d.height },
+      };
+    },
+  },
+];
+
+const qc = { result: null, product: null, images: [], index: 0, seq: 0 };
+
+function setupQc() {
+  $('qcForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    searchQc($('qcInput').value);
+  });
+  $('lbClose').onclick = closeLightbox;
+  $('lbPrev').onclick = () => stepLightbox(-1);
+  $('lbNext').onclick = () => stepLightbox(1);
+  $('lightbox').addEventListener('click', (e) => { if (e.target.id === 'lightbox') closeLightbox(); });
+  document.addEventListener('keydown', (e) => {
+    if ($('lightbox').hidden) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') stepLightbox(-1);
+    if (e.key === 'ArrowRight') stepLightbox(1);
+  });
+}
+
+async function searchQc(link) {
+  showTool('qc');
+  if (isMobile()) setDrawer(true);
+  $('qcInput').value = link;
+  const product = parseProductLink(link);
+  const seq = ++qc.seq;
+  qc.product = product;
+  if (!product) {
+    qc.result = { state: 'invalid' };
+    return rerenderQc();
+  }
+  qc.result = { state: 'loading' };
+  rerenderQc();
+
+  const settled = await Promise.allSettled(QC_SOURCES.map((s) => s.fetch(product)));
+  if (seq !== qc.seq) return; // llegó otra búsqueda mientras tanto
+  const ok = settled.filter((r) => r.status === 'fulfilled').map((r) => r.value);
+  if (!ok.length) {
+    qc.result = { state: 'error' };
+    return rerenderQc();
+  }
+  const images = ok.flatMap((r) => r.images);
+  const info = ok.map((r) => r.info).find((i) => i && (i.weight || i.length)) || {};
+  qc.result = images.length ? { state: 'ok', images, info } : { state: 'empty' };
+  rerenderQc();
+}
+
+function rerenderQc() {
+  const box = $('qcResult');
+  const r = qc.result;
+  if (!r) return box.replaceChildren();
+  const msg = (title, text, withLink) => {
+    box.innerHTML = `<div class="qc-msg"><strong>${title}</strong>${text}</div>`;
+    if (withLink) box.querySelector('.qc-msg').appendChild(openProductButton());
+  };
+  if (r.state === 'loading') {
+    box.innerHTML = `<p class="qc-meta">${t('qcLoading')}</p><div class="qc-grid" style="margin-top:10px">${'<div class="qc-thumb skeleton"></div>'.repeat(6)}</div>`;
+    return;
+  }
+  if (r.state === 'invalid') return msg(t('qcInvalidTitle'), t('qcInvalidText'));
+  if (r.state === 'error') return msg(t('qcErrorTitle'), t('qcErrorText'));
+  if (r.state === 'empty') return msg(t('qcEmptyTitle'), t('qcEmptyText'), true);
+
+  qc.images = r.images;
+  const meta = [];
+  if (r.info.weight) meta.push(t('qcWeight', { w: Number(r.info.weight).toLocaleString(locale()) }));
+  if (r.info.length && r.info.width && r.info.height) {
+    const f = (x) => Number(x).toLocaleString(locale(), { maximumFractionDigits: 1 });
+    meta.push(t('qcSize', { l: f(r.info.length), w: f(r.info.width), h: f(r.info.height) }));
+  }
+  box.innerHTML = `<div class="qc-head"><div><p class="qc-title">${t('qcCount', { n: r.images.length })}</p>`
+    + `${meta.length ? `<p class="qc-meta">${meta.join(' · ')}</p>` : ''}</div></div><div class="qc-grid"></div>`;
+  box.querySelector('.qc-head').appendChild(openProductButton());
+  const grid = box.querySelector('.qc-grid');
+  r.images.forEach((img, i) => {
+    const b = document.createElement('button');
+    b.className = 'qc-thumb';
+    b.setAttribute('aria-label', `QC ${i + 1}`);
+    b.innerHTML = '<img loading="lazy" decoding="async" referrerpolicy="no-referrer" alt="">';
+    b.firstChild.src = img.thumb;
+    b.onclick = () => openLightbox(i);
+    grid.appendChild(b);
+  });
+}
+
+function openProductButton() {
+  const b = document.createElement('button');
+  b.className = 'btn ghost';
+  b.textContent = t('qcOpenProduct');
+  b.onclick = () => {
+    const { platform, id } = qc.product;
+    const url = withRef(`https://usfans.com/product/${platform}/${id}`);
+    navigateTab(activeTab, url, `QC · ${id}`);
+    if (isMobile()) setDrawer(false);
+  };
+  return b;
+}
+
+function openLightbox(i) {
+  qc.index = i;
+  $('lightbox').hidden = false;
+  showLightboxImage();
+  $('lbClose').focus();
+}
+
+function stepLightbox(d) {
+  qc.index = (qc.index + d + qc.images.length) % qc.images.length;
+  showLightboxImage();
+}
+
+function showLightboxImage() {
+  $('lbImg').src = qc.images[qc.index].full;
+  $('lbCount').textContent = `${qc.index + 1} / ${qc.images.length}`;
+  const single = qc.images.length < 2;
+  $('lbPrev').hidden = single;
+  $('lbNext').hidden = single;
+}
+
+function closeLightbox() {
+  $('lightbox').hidden = true;
+  $('lbImg').removeAttribute('src');
 }
 
 /* ---------- Idioma ---------- */
@@ -710,8 +1026,8 @@ function setLanguage(next) {
   }
   applyStaticTexts();
   refreshThemeLabel();
-  els.tools.replaceChildren();
   renderTools();
+  rerenderQc();
   renderTabs();
   tabs.forEach((tab) => { tab.iframe.title = tabTitle(tab); });
   hideMenu();
@@ -730,6 +1046,8 @@ async function init() {
     b.onclick = () => setLanguage(b.dataset.lang);
   });
   renderTools();
+  setupResizer();
+  setupQc();
   setupTheme();
   setupChipScroll();
 
