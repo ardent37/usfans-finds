@@ -109,6 +109,11 @@ const I18N = {
     qcSize: '{l}×{w}×{h} cm',
     qcOpenProduct: 'Abrir producto',
     viewQc: 'Ver fotos QC',
+    coachOpenTitle: 'Desliza hacia la derecha',
+    coachOpenText: 'para ver los productos y las herramientas.',
+    coachCloseTitle: 'Desliza hacia la izquierda',
+    coachCloseText: 'para volver a USFans.',
+    coachSkip: 'Saltar',
     spreadsheet: 'Spreadsheet',
     toolChat: 'Chat',
     chatSoonTitle: 'Chat',
@@ -178,6 +183,11 @@ const I18N = {
     qcSize: '{l}×{w}×{h} cm',
     qcOpenProduct: 'Open product',
     viewQc: 'View QC photos',
+    coachOpenTitle: 'Swipe right',
+    coachOpenText: 'to see the products and tools.',
+    coachCloseTitle: 'Swipe left',
+    coachCloseText: 'to go back to USFans.',
+    coachSkip: 'Skip',
     spreadsheet: 'Spreadsheet',
     toolChat: 'Chat',
     chatSoonTitle: 'Chat',
@@ -756,6 +766,137 @@ function renderSkeleton(n = 8) {
 function setDrawer(open) {
   els.app.classList.toggle('collapsed', !open);
   if (!open) setExpanded(false);
+  coachOnDrawer(open);
+}
+
+/* ---------- Deslizar en móvil ---------- */
+// Abrir: desde la franja del borde izquierdo (o desde la guía). Cerrar: deslizando a la izquierda sobre el panel.
+// El panel sigue al dedo y al soltar se completa o vuelve según la distancia y la velocidad.
+function setupSwipe() {
+  const drawer = els.drawer;
+  let g = null;
+
+  const begin = (e, mode) => {
+    if (!isMobile() || g || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    g = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), mode, dragging: false, lastX: e.clientX, lastT: performance.now(), v: 0, el: e.currentTarget };
+    // La franja del borde y la guía solo sirven para deslizar: se quedan el puntero desde el primer momento
+    if (e.currentTarget !== drawer) {
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) { /* sin captura */ }
+    }
+  };
+
+  const move = (e) => {
+    if (!g || e.pointerId !== g.id) return;
+    const dx = e.clientX - g.x;
+    const dy = e.clientY - g.y;
+    if (!g.dragging) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      // Gesto vertical o en la dirección contraria: no es nuestro
+      if (Math.abs(dy) > Math.abs(dx) || (g.mode === 'open' ? dx < 0 : dx > 0)) { g = null; return; }
+      g.dragging = true;
+      try { g.el.setPointerCapture(g.id); } catch (err) { /* sin captura */ }
+      els.app.classList.add('swiping');
+      $('coach').classList.add('dragging');
+    }
+    const w = window.innerWidth;
+    const offset = g.mode === 'open' ? Math.min(0, -w + dx) : Math.min(0, dx);
+    drawer.style.transform = `translateX(${offset}px)`;
+    const now = performance.now();
+    g.v = (e.clientX - g.lastX) / Math.max(1, now - g.lastT);
+    g.lastX = e.clientX;
+    g.lastT = now;
+  };
+
+  const end = (e) => {
+    if (!g || e.pointerId !== g.id) return;
+    const s = g;
+    g = null;
+    $('coach').classList.remove('dragging');
+    if (!s.dragging) return;
+    const dx = e.clientX - s.x;
+    const w = window.innerWidth;
+    els.app.classList.remove('swiping');
+    drawer.style.transform = '';
+    const open = s.mode === 'open'
+      ? dx > w * 0.3 || s.v > 0.35
+      : !(dx < -w * 0.3 || s.v < -0.35);
+    setDrawer(open);
+  };
+
+  const cancel = (e) => {
+    if (!g || e.pointerId !== g.id) return;
+    const s = g;
+    g = null;
+    $('coach').classList.remove('dragging');
+    if (s.dragging) {
+      els.app.classList.remove('swiping');
+      drawer.style.transform = '';
+    }
+  };
+
+  const bind = (el, mode, filter) => {
+    el.addEventListener('pointerdown', (e) => {
+      if (filter && !filter(e)) return;
+      begin(e, typeof mode === 'function' ? mode() : mode);
+    });
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', cancel);
+  };
+
+  bind($('swipeEdge'), 'open');
+  // Sobre el panel: no en las categorías (tienen su propio deslizamiento), campos de texto ni el chat
+  bind(drawer, 'close', (e) => !e.target.closest('.chips, input, textarea, select, .chat-wrap, .lightbox'));
+  // Sobre la guía: el gesto que toque en cada paso
+  bind($('coach'), () => (els.app.classList.contains('collapsed') ? 'open' : 'close'));
+  // Un toque en la pestañita del borde también abre
+  $('swipeEdge').addEventListener('click', () => setDrawer(true));
+}
+
+/* ---------- Guía de gestos (primera vez en móvil) ---------- */
+// Paso 1: deslizar a la derecha (productos). Al hacerlo, 2 s después, paso 2: deslizar a la izquierda (USFans).
+const coach = { step: 0, timer: null };
+
+function coachDone() {
+  try { return localStorage.getItem('coachDone') === '1'; } catch (e) { return false; }
+}
+
+function finishCoach() {
+  coach.step = 0;
+  clearTimeout(coach.timer);
+  $('coach').hidden = true;
+  try { localStorage.setItem('coachDone', '1'); } catch (e) { /* sin almacenamiento */ }
+}
+
+function showCoachStep(step) {
+  coach.step = step;
+  const left = step === 2;
+  $('coachDemo').classList.toggle('left', left);
+  $('coachTitle').textContent = t(left ? 'coachCloseTitle' : 'coachOpenTitle');
+  $('coachText').textContent = t(left ? 'coachCloseText' : 'coachOpenText');
+  $('coach').hidden = false;
+}
+
+function coachOnDrawer(open) {
+  if (!coach.step) return;
+  if (coach.step === 1 && open) {
+    coach.step = -1; // esperando el paso 2
+    $('coach').hidden = true;
+    coach.timer = setTimeout(() => {
+      if (!els.app.classList.contains('collapsed')) showCoachStep(2);
+      else finishCoach();
+    }, 2000);
+  } else if (coach.step === 2 && !open) {
+    finishCoach();
+  }
+}
+
+function startCoach() {
+  if (!isMobile() || coachDone()) return;
+  $('coachSkip').onclick = finishCoach;
+  setTimeout(() => {
+    if (els.app.classList.contains('collapsed')) showCoachStep(1);
+  }, 900);
 }
 
 /* ---------- Ancho del panel y modo expandido ---------- */
@@ -1074,12 +1215,14 @@ async function init() {
   });
   renderTools();
   setupResizer();
+  setupSwipe();
   setupQc();
   setupTheme();
   setupChipScroll();
 
   createTab(CONFIG.homeUrl, HOME_TITLE);
   if (isMobile()) setDrawer(false);
+  startCoach();
 
   els.openDrawer.onclick = () => setDrawer(els.app.classList.contains('collapsed'));
   els.closeDrawer.onclick = () => setDrawer(false);
