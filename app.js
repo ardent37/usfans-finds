@@ -102,6 +102,13 @@ const I18N = {
     qcInvalidTitle: 'No reconozco ese enlace',
     qcInvalidText: 'Prueba con un enlace de producto de Taobao, Weidian, 1688 o de un agente como USFans, CNFans o KakoBuy.',
     qcEncryptedTitle: 'Este enlace no incluye el ID real del producto',
+    qcUsfansTitle: 'Fotos QC de USFans · {n}',
+    qcUsfansNote: 'Este enlace usa un código de USFans, así que solo podemos mostrar las fotos QC que tiene USFans de este producto.',
+    qcUsfansEmptyTitle: 'USFans aún no tiene fotos QC de este producto',
+    qcUsfansEmptyText: 'Nadie lo ha pedido todavía por USFans. Con un enlace con el ID numérico de Taobao (id=1234567890) podemos buscar en todos los agentes.',
+    qcLoading: 'Buscando fotos QC…',
+    qcErrorTitle: 'No se pudo consultar',
+    qcErrorText: 'Inténtalo de nuevo en unos segundos.',
     qcEncryptedText: 'Taobao y algunos agentes ocultan el ID tras un código cifrado que no se puede traducir desde fuera. Abre el producto en Taobao y pega el enlace que tenga el ID numérico (id=1234567890).',
     qcOpenProduct: 'Abrir producto',
     viewQc: 'Ver fotos QC',
@@ -172,6 +179,13 @@ const I18N = {
     qcInvalidTitle: 'That link isn’t recognised',
     qcInvalidText: 'Try a product link from Taobao, Weidian, 1688 or an agent such as USFans, CNFans or KakoBuy.',
     qcEncryptedTitle: 'This link doesn’t include the real product ID',
+    qcUsfansTitle: 'QC photos from USFans · {n}',
+    qcUsfansNote: 'This link uses a USFans code, so we can only show the QC photos USFans has for this product.',
+    qcUsfansEmptyTitle: 'USFans has no QC photos for this product yet',
+    qcUsfansEmptyText: 'Nobody has ordered it through USFans yet. With a link that has the numeric Taobao ID (id=1234567890) we can search across all agents.',
+    qcLoading: 'Looking for QC photos…',
+    qcErrorTitle: 'Couldn’t check',
+    qcErrorText: 'Please try again in a few seconds.',
     qcEncryptedText: 'Taobao and some agents hide the ID behind an encrypted code that can’t be translated from outside. Open the product on Taobao and paste the link that has the numeric ID (id=1234567890).',
     qcOpenProduct: 'Open product',
     viewQc: 'View QC photos',
@@ -1168,7 +1182,7 @@ const platformByCode = (code) => PLATFORMS.find((p) => p.code === code);
 function parseProductLink(link) {
   let full = String(link || '').trim();
   const own = full.match(/usfans\.com\/product\/(\d+)\/([\w-]+)/i);
-  if (own) return { platform: Number(own[1]), id: own[2], encrypted: !/^\d+$/.test(own[2]) };
+  if (own) return { platform: Number(own[1]), id: own[2], encrypted: !/^\d+$/.test(own[2]), fromUsfans: true };
   for (let i = 0; i < 3; i++) {
     try {
       const d = decodeURIComponent(full);
@@ -1209,11 +1223,36 @@ function searchQc(link) {
   qc.product = product;
   if (!product) {
     qc.result = { state: 'invalid' };
+  } else if (product.encrypted && product.fromUsfans) {
+    // Código de USFans: solo ellos lo entienden, así que se muestran sus propias fotos QC
+    qc.result = { state: 'usfans-loading' };
+    $('qcView').hidden = true;
+    loadUsfansQc(product);
   } else if (product.encrypted) {
     qc.result = { state: 'encrypted' };
   } else {
     qc.result = { state: 'ok' };
     showQcFrame(finderqcUrl(product));
+  }
+  rerenderQc();
+}
+
+// Fotos QC que USFans tiene del producto (acepta su propio código largo). Se piden a su endpoint público.
+const USFANS_WATERMARK = 'watermark,image_d2F0ZXJtYXJrLnBuZz94LW9zcy1wcm9jZXNzPWltYWdlL3Jlc2l6ZSxQXzIw,g_ne,x_1,y_20';
+const usfansImage = (url, width) =>
+  `${url.split('?')[0]}?x-oss-process=image/auto-orient,1/${USFANS_WATERMARK}/resize,w_${width}/quality,q_82/format,webp`;
+
+async function loadUsfansQc(product) {
+  const mine = product;
+  try {
+    const res = await fetch(`https://usfans.com/api/goods/estimate-info?goodsId=${encodeURIComponent(product.id)}`);
+    if (!res.ok) throw new Error(`USFans ${res.status}`);
+    const images = ((await res.json()).data || {}).qcImages || [];
+    if (qc.product !== mine) return; // llegó otra búsqueda mientras tanto
+    qc.result = images.length ? { state: 'usfans-ok', images } : { state: 'usfans-empty' };
+  } catch (e) {
+    if (qc.product !== mine) return;
+    qc.result = { state: 'usfans-error' };
   }
   rerenderQc();
 }
@@ -1233,6 +1272,29 @@ function rerenderQc() {
   const r = qc.result;
   if (!r) return box.replaceChildren();
   const msg = (title, text) => { box.innerHTML = `<div class="qc-msg"><strong>${title}</strong>${text}</div>`; };
+  box.classList.toggle('scroll', r.state === 'usfans-ok');
+  if (r.state === 'usfans-loading') {
+    box.innerHTML = `<p class="qc-meta">${t('qcLoading')}</p><div class="qc-grid" style="margin-top:10px">${'<div class="qc-thumb skeleton"></div>'.repeat(6)}</div>`;
+    return;
+  }
+  if (r.state === 'usfans-empty') return msg(t('qcUsfansEmptyTitle'), t('qcUsfansEmptyText'));
+  if (r.state === 'usfans-error') return msg(t('qcErrorTitle'), t('qcErrorText'));
+  if (r.state === 'usfans-ok') {
+    box.innerHTML = `<p class="qc-title">${t('qcUsfansTitle', { n: r.images.length })}</p><p class="qc-meta">${t('qcUsfansNote')}</p><div class="qc-grid" style="margin-top:12px"></div>`;
+    const grid = box.querySelector('.qc-grid');
+    r.images.forEach((u, i) => {
+      const a = document.createElement('a');
+      a.className = 'qc-thumb';
+      a.href = usfansImage(u, 1600);
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.setAttribute('aria-label', `QC ${i + 1}`);
+      a.innerHTML = '<img loading="lazy" decoding="async" referrerpolicy="no-referrer" alt="">';
+      a.firstChild.src = usfansImage(u, 400);
+      grid.appendChild(a);
+    });
+    return;
+  }
   if (r.state === 'invalid') {
     $('qcView').hidden = true;
     return msg(t('qcInvalidTitle'), t('qcInvalidText'));
