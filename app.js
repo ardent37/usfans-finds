@@ -96,17 +96,13 @@ const I18N = {
     toolQc: 'Fotos QC',
     qcPlaceholder: 'Pega el enlace del producto',
     qcSearch: 'Buscar QC',
-    qcHelp: 'Pega un enlace de Taobao, Weidian, 1688 o de cualquier agente.',
-    qcLoading: 'Buscando fotos QC…',
+    qcHelp: 'Pega un enlace de Taobao, Weidian, 1688 o de cualquier agente. Las fotos QC son de FinderQC.',
+    qcOpenSource: 'Abrir en FinderQC ↗',
+    qcShowing: 'Fotos QC de FinderQC · {store} {id}',
     qcInvalidTitle: 'No reconozco ese enlace',
     qcInvalidText: 'Prueba con un enlace de producto de Taobao, Weidian, 1688 o de un agente como USFans, CNFans o KakoBuy.',
-    qcEmptyTitle: 'Aún no hay fotos QC',
-    qcEmptyText: 'Nadie ha comprado este producto todavía a través de los agentes que consultamos.',
-    qcErrorTitle: 'No se pudo consultar',
-    qcErrorText: 'Inténtalo de nuevo en unos segundos.',
-    qcCount: '{n} fotos QC',
-    qcWeight: 'Peso aprox. {w} g',
-    qcSize: '{l}×{w}×{h} cm',
+    qcEncryptedTitle: 'Este enlace no incluye el ID real del producto',
+    qcEncryptedText: 'Taobao y algunos agentes ocultan el ID tras un código cifrado que no se puede traducir desde fuera. Abre el producto en Taobao y pega el enlace que tenga el ID numérico (id=1234567890).',
     qcOpenProduct: 'Abrir producto',
     viewQc: 'Ver fotos QC',
     coachOpenTitle: 'Desliza desde aquí →',
@@ -170,17 +166,13 @@ const I18N = {
     toolQc: 'QC photos',
     qcPlaceholder: 'Paste the product link',
     qcSearch: 'Find QC',
-    qcHelp: 'Paste a Taobao, Weidian, 1688 or any agent link.',
-    qcLoading: 'Looking for QC photos…',
+    qcHelp: 'Paste a Taobao, Weidian, 1688 or any agent link. QC photos come from FinderQC.',
+    qcOpenSource: 'Open in FinderQC ↗',
+    qcShowing: 'QC photos from FinderQC · {store} {id}',
     qcInvalidTitle: 'That link isn’t recognised',
     qcInvalidText: 'Try a product link from Taobao, Weidian, 1688 or an agent such as USFans, CNFans or KakoBuy.',
-    qcEmptyTitle: 'No QC photos yet',
-    qcEmptyText: 'Nobody has bought this product through the agents we check yet.',
-    qcErrorTitle: 'Couldn’t check',
-    qcErrorText: 'Please try again in a few seconds.',
-    qcCount: '{n} QC photos',
-    qcWeight: 'Approx. weight {w} g',
-    qcSize: '{l}×{w}×{h} cm',
+    qcEncryptedTitle: 'This link doesn’t include the real product ID',
+    qcEncryptedText: 'Taobao and some agents hide the ID behind an encrypted code that can’t be translated from outside. Open the product on Taobao and paste the link that has the numeric ID (id=1234567890).',
     qcOpenProduct: 'Open product',
     viewQc: 'View QC photos',
     coachOpenTitle: 'Swipe from here →',
@@ -1160,19 +1152,23 @@ function loadChat() {
   document.body.appendChild(script);
 }
 
-/* ---------- Fotos QC ---------- */
-// Tiendas: el mismo número que usa USFans en sus URL (usfans.com/product/NÚMERO/ID)
+/* ---------- Fotos QC (FinderQC) ---------- */
+// Al buscar, se muestra en un iframe la página de FinderQC con las fotos QC del producto:
+//   https://finderqc.com/product/TIENDA/ID/qc   (TIENDA = Weidian, Taobao o Ali1688; ID = el de la tienda)
+// Número de tienda en las URL de USFans → nombre que usa FinderQC
 const PLATFORMS = [
-  { code: 3, name: 'Weidian', test: /weidian|youshop10|koudai/i },
-  { code: 1, name: '1688', test: /1688\.com|ali_?1688|(?:shop_type|platform|source)=1688|\/1688\//i },
-  { code: 2, name: 'Taobao', test: /taobao|tmall/i },
+  { code: 3, name: 'Weidian', finderqc: 'Weidian', test: /weidian|youshop10|koudai/i },
+  { code: 1, name: '1688', finderqc: 'Ali1688', test: /1688\.com|ali_?1688|(?:shop_type|platform|source)=1688|\/1688\//i },
+  { code: 2, name: 'Taobao', finderqc: 'Taobao', test: /taobao|tmall/i },
 ];
+const platformByCode = (code) => PLATFORMS.find((p) => p.code === code);
 
-// Saca tienda e ID de cualquier enlace: tienda, USFans u otro agente (aunque lleve la URL codificada dentro)
+// Saca tienda e ID de cualquier enlace: tienda, USFans u otro agente (aunque lleve la URL codificada dentro).
+// encrypted = el ID no es numérico (Taobao cifrado o código propio de USFans): no hay forma de traducirlo desde fuera.
 function parseProductLink(link) {
   let full = String(link || '').trim();
-  const own = full.match(/usfans\.com\/product\/(\d+)\/(\d+)/i);
-  if (own) return { platform: Number(own[1]), id: own[2] };
+  const own = full.match(/usfans\.com\/product\/(\d+)\/([\w-]+)/i);
+  if (own) return { platform: Number(own[1]), id: own[2], encrypted: !/^\d+$/.test(own[2]) };
   for (let i = 0; i < 3; i++) {
     try {
       const d = decodeURIComponent(full);
@@ -1184,154 +1180,70 @@ function parseProductLink(link) {
   }
   const platform = PLATFORMS.find((p) => p.test.test(full));
   if (!platform) return null;
-  const m = full.match(/itemid=(\d{6,})/i)
-    || full.match(/[?&](?:id|item_id|goods_?id|product_?id|offer_?id)=(\d{6,})/i)
+  const m = full.match(/itemid=([\w-]{6,})/i)
+    || full.match(/[?&](?:id|item_id|goods_?id|product_?id|offer_?id)=([\w-]{6,})/i)
     || full.match(/offer\/(\d{6,})\.html/i)
     || full.match(/(?:weidian|taobao|tmall|1688)\/(\d{6,})/i);
-  return m ? { platform: platform.code, id: m[1] } : null;
+  if (!m) return null;
+  return { platform: platform.code, id: m[1], encrypted: !/^\d+$/.test(m[1]) };
 }
 
-// Fuentes de fotos QC, en orden: sus fotos se muestran juntas en una sola galería (USFans primero).
-// Para añadir un agente: una entrada con fetch() que devuelva { images: [{ thumb, full }], info }.
-const USFANS_WATERMARK = 'watermark,image_d2F0ZXJtYXJrLnBuZz94LW9zcy1wcm9jZXNzPWltYWdlL3Jlc2l6ZSxQXzIw,g_ne,x_1,y_20';
-const usfansImage = (url, width) =>
-  `${url.split('?')[0]}?x-oss-process=image/auto-orient,1/${USFANS_WATERMARK}/resize,w_${width}/quality,q_82/format,webp`;
+const finderqcUrl = ({ platform, id }) =>
+  `https://finderqc.com/product/${platformByCode(platform).finderqc}/${encodeURIComponent(id)}/qc`;
 
-const QC_SOURCES = [
-  {
-    name: 'USFans',
-    async fetch({ id }) {
-      const res = await fetch(`https://usfans.com/api/goods/estimate-info?goodsId=${encodeURIComponent(id)}`);
-      if (!res.ok) throw new Error(`USFans ${res.status}`);
-      const d = (await res.json()).data || {};
-      return {
-        images: (d.qcImages || []).map((u) => ({ thumb: usfansImage(u, 400), full: usfansImage(u, 1400) })),
-        info: { weight: d.weight, length: d.length, width: d.width, height: d.height },
-      };
-    },
-  },
-];
-
-const qc = { result: null, product: null, images: [], index: 0, seq: 0 };
+const qc = { result: null, product: null, url: '' };
 
 function setupQc() {
   $('qcForm').addEventListener('submit', (e) => {
     e.preventDefault();
     searchQc($('qcInput').value);
   });
-  $('lbClose').onclick = closeLightbox;
-  $('lbPrev').onclick = () => stepLightbox(-1);
-  $('lbNext').onclick = () => stepLightbox(1);
-  $('lightbox').addEventListener('click', (e) => { if (e.target.id === 'lightbox') closeLightbox(); });
-  document.addEventListener('keydown', (e) => {
-    if ($('lightbox').hidden) return;
-    if (e.key === 'Escape') closeLightbox();
-    if (e.key === 'ArrowLeft') stepLightbox(-1);
-    if (e.key === 'ArrowRight') stepLightbox(1);
-  });
+  $('qcFrame').addEventListener('load', () => $('qcLoading').classList.add('done'));
 }
 
-async function searchQc(link) {
+function searchQc(link) {
   showTool('qc');
   if (isMobile()) setDrawer(true);
   $('qcInput').value = link;
   const product = parseProductLink(link);
-  const seq = ++qc.seq;
   qc.product = product;
   if (!product) {
     qc.result = { state: 'invalid' };
-    return rerenderQc();
+  } else if (product.encrypted) {
+    qc.result = { state: 'encrypted' };
+  } else {
+    qc.result = { state: 'ok' };
+    showQcFrame(finderqcUrl(product));
   }
-  qc.result = { state: 'loading' };
   rerenderQc();
+}
 
-  const settled = await Promise.allSettled(QC_SOURCES.map((s) => s.fetch(product)));
-  if (seq !== qc.seq) return; // llegó otra búsqueda mientras tanto
-  const ok = settled.filter((r) => r.status === 'fulfilled').map((r) => r.value);
-  if (!ok.length) {
-    qc.result = { state: 'error' };
-    return rerenderQc();
+function showQcFrame(url) {
+  if (qc.url !== url) {
+    qc.url = url;
+    $('qcLoading').classList.remove('done');
+    $('qcFrame').src = url;
   }
-  const images = ok.flatMap((r) => r.images);
-  const info = ok.map((r) => r.info).find((i) => i && (i.weight || i.length)) || {};
-  qc.result = images.length ? { state: 'ok', images, info } : { state: 'empty' };
-  rerenderQc();
+  $('qcOpenSource').href = url;
+  $('qcView').hidden = false;
 }
 
 function rerenderQc() {
   const box = $('qcResult');
   const r = qc.result;
   if (!r) return box.replaceChildren();
-  const msg = (title, text, withLink) => {
-    box.innerHTML = `<div class="qc-msg"><strong>${title}</strong>${text}</div>`;
-    if (withLink) box.querySelector('.qc-msg').appendChild(openProductButton());
-  };
-  if (r.state === 'loading') {
-    box.innerHTML = `<p class="qc-meta">${t('qcLoading')}</p><div class="qc-grid" style="margin-top:10px">${'<div class="qc-thumb skeleton"></div>'.repeat(6)}</div>`;
-    return;
+  const msg = (title, text) => { box.innerHTML = `<div class="qc-msg"><strong>${title}</strong>${text}</div>`; };
+  if (r.state === 'invalid') {
+    $('qcView').hidden = true;
+    return msg(t('qcInvalidTitle'), t('qcInvalidText'));
   }
-  if (r.state === 'invalid') return msg(t('qcInvalidTitle'), t('qcInvalidText'));
-  if (r.state === 'error') return msg(t('qcErrorTitle'), t('qcErrorText'));
-  if (r.state === 'empty') return msg(t('qcEmptyTitle'), t('qcEmptyText'), true);
-
-  qc.images = r.images;
-  const meta = [];
-  if (r.info.weight) meta.push(t('qcWeight', { w: Number(r.info.weight).toLocaleString(locale()) }));
-  if (r.info.length && r.info.width && r.info.height) {
-    const f = (x) => Number(x).toLocaleString(locale(), { maximumFractionDigits: 1 });
-    meta.push(t('qcSize', { l: f(r.info.length), w: f(r.info.width), h: f(r.info.height) }));
+  if (r.state === 'encrypted') {
+    $('qcView').hidden = true;
+    return msg(t('qcEncryptedTitle'), t('qcEncryptedText'));
   }
-  box.innerHTML = `<div class="qc-head"><div><p class="qc-title">${t('qcCount', { n: r.images.length })}</p>`
-    + `${meta.length ? `<p class="qc-meta">${meta.join(' · ')}</p>` : ''}</div></div><div class="qc-grid"></div>`;
-  box.querySelector('.qc-head').appendChild(openProductButton());
-  const grid = box.querySelector('.qc-grid');
-  r.images.forEach((img, i) => {
-    const b = document.createElement('button');
-    b.className = 'qc-thumb';
-    b.setAttribute('aria-label', `QC ${i + 1}`);
-    b.innerHTML = '<img loading="lazy" decoding="async" referrerpolicy="no-referrer" alt="">';
-    b.firstChild.src = img.thumb;
-    b.onclick = () => openLightbox(i);
-    grid.appendChild(b);
-  });
-}
-
-function openProductButton() {
-  const b = document.createElement('button');
-  b.className = 'btn ghost';
-  b.textContent = t('qcOpenProduct');
-  b.onclick = () => {
-    const { platform, id } = qc.product;
-    const url = withRef(`https://usfans.com/product/${platform}/${id}`);
-    navigateTab(activeTab, url, `QC · ${id}`);
-    if (isMobile()) setDrawer(false);
-  };
-  return b;
-}
-
-function openLightbox(i) {
-  qc.index = i;
-  $('lightbox').hidden = false;
-  showLightboxImage();
-  $('lbClose').focus();
-}
-
-function stepLightbox(d) {
-  qc.index = (qc.index + d + qc.images.length) % qc.images.length;
-  showLightboxImage();
-}
-
-function showLightboxImage() {
-  $('lbImg').src = qc.images[qc.index].full;
-  $('lbCount').textContent = `${qc.index + 1} / ${qc.images.length}`;
-  const single = qc.images.length < 2;
-  $('lbPrev').hidden = single;
-  $('lbNext').hidden = single;
-}
-
-function closeLightbox() {
-  $('lightbox').hidden = true;
-  $('lbImg').removeAttribute('src');
+  box.replaceChildren();
+  const p = qc.product;
+  $('qcViewLabel').textContent = t('qcShowing', { store: platformByCode(p.platform).name, id: p.id });
 }
 
 /* ---------- Idioma ---------- */
