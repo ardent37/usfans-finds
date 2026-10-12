@@ -40,9 +40,9 @@ const CONFIG = {
 
   // Chat: servidor de Discord mostrado con WidgetBot (dash.widgetbot.io). Vacío = pestaña Chat sin chat.
   // Chat de Telegram (Worker de E:\usfans-chat). Mientras estén vacíos se usa el chat de Discord de más abajo.
-  chatApi: '',            // URL del Worker, p. ej. https://usfans-chat.TU-SUBDOMINIO.workers.dev
-  telegramBotId: '',      // número del bot (la parte del token anterior a los dos puntos)
-  telegramFolderUrl: '',  // enlace de tu carpeta de Telegram (t.me/addlist/...)
+  chatApi: 'https://usfans-chat.ardentcone.workers.dev',            // URL del Worker, p. ej. https://usfans-chat.TU-SUBDOMINIO.workers.dev
+  telegramBotId: '8827203183',      // número del bot (la parte del token anterior a los dos puntos)
+  telegramFolderUrl: 'https://t.me/addlist/cT5nsOWvuD8xMTNk',  // enlace de tu carpeta de Telegram (t.me/addlist/...)
 
   discordServer: '1456400905585955004',
   discordChannel: '1456400907821650107',   // canal con el que se abre el chat (#general); vacío = lista de canales
