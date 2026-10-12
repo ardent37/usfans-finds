@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="USFans+">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>USFans+ | Products, Spreadsheets, QC</title>
+  <meta name="description" content="Search thousands of Taobao, Weidian and 1688 products, check QC photos and buy with USFans without leaving the site. Community chat included.">
+  <link rel="canonical" href="https://usfans.saltychina.com/en/">
+  <link rel="alternate" hreflang="es" href="https://usfans.saltychina.com/">
+  <link rel="alternate" hreflang="en" href="https://usfans.saltychina.com/en/">
+  <link rel="alternate" hreflang="x-default" href="https://usfans.saltychina.com/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="USFans+ Finds">
+  <meta property="og:title" content="USFans+ | Products, Spreadsheets, QC">
+  <meta property="og:description" content="Search thousands of Taobao, Weidian and 1688 products, check QC photos and buy with USFans without leaving the site. Community chat included.">
+  <meta property="og:url" content="https://usfans.saltychina.com/en/">
+  <meta property="og:image" content="https://usfans.saltychina.com/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="en_GB">
+  <meta property="og:locale:alternate" content="es_ES">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="USFans+ | Products, Spreadsheets, QC">
+  <meta name="twitter:description" content="Search thousands of Taobao, Weidian and 1688 products, check QC photos and buy with USFans without leaving the site. Community chat included.">
+  <meta name="twitter:image" content="https://usfans.saltychina.com/og-image.png">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"USFans+ Finds","url":"https://usfans.saltychina.com/en/","inLanguage":"en","description":"Search thousands of Taobao, Weidian and 1688 products, check QC photos and buy with USFans without leaving the site. Community chat included.","publisher":{"@type":"Organization","name":"Salty","url":"https://saltychina.com/","logo":"https://usfans.saltychina.com/icon-512.png"}}</script>
+  <meta name="theme-color" content="#f5f5f7" id="themeColor">
+  <script>
+    // Tema claro por defecto; el oscuro solo si el usuario lo eligió antes
+    try { if (localStorage.getItem('theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch (e) {}
+    // Idioma según la dirección: / = español, /en/ = inglés (así Google indexa cada uno por separado)
+    document.documentElement.lang = /^\/en(\/|$)/.test(location.pathname) ? 'en' : 'es';
+  </script>
+  <link rel="icon" href="/favicon.ico" sizes="48x48">
+  <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/styles.css?v=23">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" defer></script>
+  <script src="/app.js?v=26" defer></script>
+</head>
+<body>
+  <div class="app" id="app">
+    <!-- Panel lateral de herramientas -->
+    <aside class="drawer" id="drawer" aria-label="Herramientas">
+      <header class="drawer-head">
+        <div class="brand">
+          <img class="logo-light" src="/logo-light.png" alt="USFans+" width="1270" height="232">
+          <img class="logo-dark" src="/logo-dark.png" alt="" aria-hidden="true" width="1270" height="232">
+        </div>
+        <div class="head-actions">
+        <div class="lang-switch" role="group" data-i18n-attr="aria-label:language">
+          <button type="button" data-lang="es" lang="es">ES</button>
+          <button type="button" data-lang="en" lang="en">EN</button>
+        </div>
+        <button class="icon-btn" id="themeToggle" aria-pressed="false">
+          <svg class="ico-moon" viewBox="0 0 24 24" width="17" height="17"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          <svg class="ico-sun" viewBox="0 0 24 24" width="17" height="17"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <button class="icon-btn" id="closeDrawer" data-i18n-attr="title:hidePanel;aria-label:hidePanel">
+          <svg viewBox="0 0 24 24" width="18" height="18"><rect x="3.5" y="4.5" width="17" height="15" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9.5 4.5v15" stroke="currentColor" stroke-width="1.6"/></svg>
+        </button>
+        </div>
+      </header>
+
+      <nav class="tools" id="tools" role="tablist" hidden></nav>
+
+      <section class="tool" id="tool-products" role="tabpanel">
+        <div class="search-wrap">
+          <svg class="search-ico" viewBox="0 0 24 24" width="16" height="16"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input id="search" type="search" data-i18n-attr="placeholder:search;aria-label:searchLabel" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="filters" id="filters">
+          <button class="chip-arrow prev" id="chipsPrev" data-i18n-attr="aria-label:prevCats" tabindex="-1">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="chips" id="chips" role="toolbar" data-i18n-attr="aria-label:categories"></div>
+          <button class="chip-arrow next" id="chipsNext" data-i18n-attr="aria-label:nextCats" tabindex="-1">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div class="list-head">
+          <p class="count" id="count" data-i18n="loading">Cargando productos…</p>
+          <div class="sort-wrap">
+            <select id="sort" data-i18n-attr="aria-label:sortLabel">
+              <option value="default" data-i18n="sortDefault">Destacados</option>
+              <option value="price-asc" data-i18n="sortPriceAsc">Precio ↑</option>
+              <option value="price-desc" data-i18n="sortPriceDesc">Precio ↓</option>
+              <option value="name" data-i18n="sortName">Nombre A–Z</option>
+            </select>
+          </div>
+        </div>
+        <div class="list" id="list">
+          <div class="grid" id="grid"></div>
+          <div class="sentinel" id="sentinel"></div>
+        </div>
+      </section>
+
+      <section class="tool" id="tool-qc" role="tabpanel" hidden>
+        <form class="qc-form" id="qcForm" autocomplete="off">
+          <div class="search-wrap">
+            <svg class="search-ico" viewBox="0 0 24 24" width="16" height="16"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <input id="qcInput" type="url" inputmode="url" spellcheck="false" data-i18n-attr="placeholder:qcPlaceholder;aria-label:qcPlaceholder">
+          </div>
+          <button class="btn qc-submit" type="submit" data-i18n="qcSearch">Buscar QC</button>
+        </form>
+        <p class="qc-help" data-i18n="qcHelp">Pega un enlace de Taobao, Weidian, 1688 o de cualquier agente.</p>
+        <div class="qc-result" id="qcResult" aria-live="polite"></div>
+        <!-- Página de FinderQC con las fotos QC del producto: solo aparece tras buscar -->
+        <div class="qc-view" id="qcView" hidden>
+          <div class="qc-view-bar">
+            <span class="qc-view-label" id="qcViewLabel"></span>
+            <a class="btn ghost" id="qcOpenSource" href="#" target="_blank" rel="noopener" data-i18n="qcOpenSource">Abrir en FinderQC ↗</a>
+          </div>
+          <div class="qc-frame-wrap">
+            <iframe id="qcFrame" title="FinderQC" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+            <div class="frame-loading" id="qcLoading"><span class="spinner"></span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tool" id="tool-chat" role="tabpanel" hidden>
+        <div class="chat-wrap" id="chatWrap"></div>
+
+        <!-- Chat de la comunidad (conectado al grupo de Telegram) -->
+        <div class="tgchat" id="tgChat" hidden>
+          <div class="tg-gate" id="tgGate" hidden>
+            <svg class="tg-gate-ico" viewBox="0 0 24 24" width="44" height="44"><path d="M21.5 4.3 3.4 11.2c-1.2.5-1.2 1.2-.2 1.5l4.6 1.4 1.8 5.5c.2.6.1.8.7.8.5 0 .7-.2 1-.5l2.2-2.1 4.6 3.4c.8.5 1.5.2 1.7-.8l3-14.2c.3-1.2-.4-1.7-1.3-1.3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="m8 14.3 9.4-5.9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <strong class="tg-gate-title" id="tgGateTitle"></strong>
+            <span class="tg-gate-text" id="tgGateText"></span>
+            <button class="btn tg-gate-btn" id="tgLogin" type="button" data-i18n="chatLoginBtn">Entrar con Telegram</button>
+            <a class="btn tg-gate-btn" id="tgJoin" href="#" target="_blank" rel="noopener" data-i18n="chatJoinBtn" hidden>Añadir la carpeta de Telegram</a>
+            <button class="btn ghost tg-gate-btn" id="tgRecheck" type="button" data-i18n="chatRecheck" hidden>Ya me he unido, comprobar</button>
+          </div>
+          <div class="tg-room" id="tgRoom" hidden>
+            <div class="tg-head">
+              <span class="tg-dot" id="tgDot"></span>
+              <strong data-i18n="chatTitle">Chat de la comunidad</strong>
+              <span class="tg-online" id="tgOnline"></span>
+              <button class="btn ghost tg-logout" id="tgLogout" type="button" data-i18n="chatLogout">Salir</button>
+            </div>
+            <div class="tg-list" id="tgList" aria-live="polite"></div>
+            <p class="tg-status" id="tgStatus" hidden></p>
+            <form class="tg-form" id="tgForm" autocomplete="off">
+              <input id="tgInput" type="text" maxlength="500" data-i18n-attr="placeholder:chatPlaceholder;aria-label:chatPlaceholder">
+              <button class="btn" id="tgSend" type="submit" data-i18n-attr="aria-label:chatSend">
+                <svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </form>
+            <p class="tg-note" data-i18n="chatNote">Sé respetuoso. Los mensajes pueden ser eliminados por los moderadores.</p>
+          </div>
+        </div>
+        <div class="tool-empty" id="chatEmpty" hidden>
+          <svg viewBox="0 0 24 24" width="40" height="40"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.6c-.5.4-1.3 0-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          <strong data-i18n="chatSoonTitle">Chat</strong>
+          <span data-i18n="chatSoonText">Muy pronto podrás chatear aquí.</span>
+        </div>
+      </section>
+    </aside>
+
+    <!-- Divisor: arrastrar para cambiar el ancho del panel; la pestaña lo expande a pantalla completa -->
+    <div class="resizer" id="resizer" role="separator" aria-orientation="vertical" tabindex="0" data-i18n-attr="aria-label:resizePanel;title:resizePanel">
+      <button class="expand-tab" id="expandTab" type="button" data-i18n-attr="aria-label:expandPanel;title:expandPanel">
+        <svg viewBox="0 0 24 24" width="14" height="14"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <!-- Zona principal: USFans incrustado -->
+    <main class="main" id="main">
+      <h1 class="sr-only sr-h1">China shopping agent: search products, check QC photos and buy with USFans</h1>
+      <div class="bar">
+        <button class="btn ghost" id="openDrawer" data-i18n-attr="aria-label:showProducts">
+          <svg viewBox="0 0 24 24" width="16" height="16"><rect x="3.5" y="4.5" width="17" height="15" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9.5 4.5v15" stroke="currentColor" stroke-width="1.6"/></svg>
+          <span data-i18n="products">Productos</span>
+        </button>
+        <div class="tabs" id="tabs" role="tablist" data-i18n-attr="aria-label:tabsLabel"></div>
+        <button class="icon-btn" id="newTab" data-i18n-attr="title:newTab;aria-label:newTab">
+          <svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <button class="btn ghost" id="goHome" data-i18n="goHome" hidden>← Registro</button>
+        <a class="btn" id="openTab" href="#" target="_blank" rel="noopener" data-i18n="openBrowser">Abrir en navegador</a>
+      </div>
+      <div class="frame-wrap" id="frames">
+        <div class="frame-loading" id="frameLoading"><span class="spinner"></span></div>
+      </div>
+      <p class="hint" data-i18n-html="hint">Haz clic derecho en un producto para ver más opciones. Si algo no carga o no puedes pagar, usa <strong>Abrir en navegador</strong>.</p>
+    </main>
+  </div>
+  <div class="menu" id="menu" role="menu" hidden></div>
+
+  <!-- Móvil: lengüetas para deslizar entre USFans y el panel (los toques sobre USFans no llegan a la web) -->
+  <div class="pull-tab pull-left" id="swipeEdge" role="button" tabindex="0" data-i18n-attr="aria-label:showProducts">
+    <span class="pull-tab-grip"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+  </div>
+  <div class="pull-tab pull-right" id="swipeBack" role="button" tabindex="0" data-i18n-attr="aria-label:coachCloseText">
+    <span class="pull-tab-grip"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+  </div>
+
+  <!-- Móvil: guía de gestos la primera vez, señalando la lengüeta que hay que deslizar -->
+  <div class="coach" id="coach" hidden>
+    <div class="coach-hint" id="coachHint">
+      <p class="coach-title" id="coachTitle"></p>
+      <p class="coach-text" id="coachText"></p>
+    </div>
+    <div class="coach-gesture" aria-hidden="true"><span class="coach-trail"></span><svg class="coach-hand" viewBox="0 0 24 24" width="46" height="46"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10m0-.5V4a1.5 1.5 0 0 1 3 0v6m0-.5V5.5a1.5 1.5 0 0 1 3 0V14a7 7 0 0 1-7 7h-.8a6 6 0 0 1-4.6-2.2L3.4 15.1a1.6 1.6 0 0 1 2.4-2.1L9 15" fill="#fff" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <button class="coach-skip" id="coachSkip" type="button" data-i18n="coachSkip">Saltar</button>
+  </div>
+</body>
+</html>

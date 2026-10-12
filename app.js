@@ -144,6 +144,9 @@ const I18N = {
     chatErrMuted: 'Estás silenciado y no puedes escribir.',
     chatErrSend: 'No se pudo enviar. Inténtalo de nuevo.',
     chatViaTelegram: 'Telegram',
+    seoTitle: 'USFans+ | Productos, Spreadsheets, QC',
+    seoDescription: 'Busca entre miles de productos de Taobao, Weidian y 1688, consulta fotos QC y compra con USFans sin salir de la web. Chat de la comunidad incluido.',
+    seoH1: 'Agente de compras en China: busca productos, mira fotos QC y compra con USFans',
     viewQc: 'Ver fotos QC',
     coachOpenTitle: 'Desliza desde aquí →',
     coachOpenText: 'para ver los productos y las herramientas.',
@@ -249,6 +252,9 @@ const I18N = {
     chatErrMuted: 'You are muted and can’t write.',
     chatErrSend: 'Couldn’t send. Please try again.',
     chatViaTelegram: 'Telegram',
+    seoTitle: 'USFans+ | Products, Spreadsheets, QC',
+    seoDescription: 'Search thousands of Taobao, Weidian and 1688 products, check QC photos and buy with USFans without leaving the site. Community chat included.',
+    seoH1: 'China shopping agent: search products, check QC photos and buy with USFans',
     viewQc: 'View QC photos',
     coachOpenTitle: 'Swipe from here →',
     coachOpenText: 'to see the products and tools.',
@@ -1615,6 +1621,24 @@ function rerenderQc() {
 }
 
 /* ---------- Idioma ---------- */
+// Cabecera de la página en el idioma activo. Cada idioma tiene su dirección (/ y /en/), y el selector
+// cambia los textos al instante y actualiza también la dirección.
+function applySeoMeta() {
+  const url = `https://usfans.saltychina.com${lang === 'en' ? '/en/' : '/'}`;
+  const set = (sel, attr, val) => document.querySelector(sel)?.setAttribute(attr, val);
+  document.title = t('seoTitle');
+  set('meta[name="description"]', 'content', t('seoDescription'));
+  set('meta[property="og:title"]', 'content', t('seoTitle'));
+  set('meta[property="og:description"]', 'content', t('seoDescription'));
+  set('meta[name="twitter:title"]', 'content', t('seoTitle'));
+  set('meta[name="twitter:description"]', 'content', t('seoDescription'));
+  set('meta[property="og:locale"]', 'content', lang === 'en' ? 'en_GB' : 'es_ES');
+  set('link[rel="canonical"]', 'href', url);
+  set('meta[property="og:url"]', 'content', url);
+  const h1 = document.querySelector('.sr-h1');
+  if (h1) h1.textContent = t('seoH1');
+}
+
 // Textos fijos de la página: data-i18n (texto), data-i18n-html (texto con formato)
 // y data-i18n-attr="atributo:clave;atributo:clave"
 function applyStaticTexts() {
@@ -1640,6 +1664,12 @@ function setLanguage(next) {
   } catch (e) {
     // Sin almacenamiento (modo privado): el idioma dura hasta recargar
   }
+  try {
+    history.replaceState(null, '', next === 'en' ? '/en/' : '/');
+  } catch (e) {
+    // sin historial (archivo local): se queda la misma dirección
+  }
+  applySeoMeta();
   applyStaticTexts();
   refreshThemeLabel();
   renderTools();
@@ -1657,7 +1687,7 @@ function setLanguage(next) {
 
 /* ---------- Arranque ---------- */
 async function init() {
-  document.title = `${CONFIG.brand} Finds`;
+  applySeoMeta();
   applyStaticTexts();
   document.querySelectorAll('.lang-switch [data-lang]').forEach((b) => {
     b.onclick = () => setLanguage(b.dataset.lang);
