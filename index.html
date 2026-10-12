@@ -29,9 +29,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="styles.css?v=21">
+  <link rel="stylesheet" href="styles.css?v=22">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" defer></script>
-  <script src="app.js?v=22" defer></script>
+  <script src="app.js?v=23" defer></script>
 </head>
 <body>
   <div class="app" id="app">
@@ -115,6 +115,35 @@
 
       <section class="tool" id="tool-chat" role="tabpanel" hidden>
         <div class="chat-wrap" id="chatWrap"></div>
+
+        <!-- Chat de la comunidad (conectado al grupo de Telegram) -->
+        <div class="tgchat" id="tgChat" hidden>
+          <div class="tg-gate" id="tgGate" hidden>
+            <svg class="tg-gate-ico" viewBox="0 0 24 24" width="44" height="44"><path d="M21.5 4.3 3.4 11.2c-1.2.5-1.2 1.2-.2 1.5l4.6 1.4 1.8 5.5c.2.6.1.8.7.8.5 0 .7-.2 1-.5l2.2-2.1 4.6 3.4c.8.5 1.5.2 1.7-.8l3-14.2c.3-1.2-.4-1.7-1.3-1.3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="m8 14.3 9.4-5.9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <strong class="tg-gate-title" id="tgGateTitle"></strong>
+            <span class="tg-gate-text" id="tgGateText"></span>
+            <button class="btn tg-gate-btn" id="tgLogin" type="button" data-i18n="chatLoginBtn">Entrar con Telegram</button>
+            <a class="btn tg-gate-btn" id="tgJoin" href="#" target="_blank" rel="noopener" data-i18n="chatJoinBtn" hidden>Añadir la carpeta de Telegram</a>
+            <button class="btn ghost tg-gate-btn" id="tgRecheck" type="button" data-i18n="chatRecheck" hidden>Ya me he unido, comprobar</button>
+          </div>
+          <div class="tg-room" id="tgRoom" hidden>
+            <div class="tg-head">
+              <span class="tg-dot" id="tgDot"></span>
+              <strong data-i18n="chatTitle">Chat de la comunidad</strong>
+              <span class="tg-online" id="tgOnline"></span>
+              <button class="btn ghost tg-logout" id="tgLogout" type="button" data-i18n="chatLogout">Salir</button>
+            </div>
+            <div class="tg-list" id="tgList" aria-live="polite"></div>
+            <p class="tg-status" id="tgStatus" hidden></p>
+            <form class="tg-form" id="tgForm" autocomplete="off">
+              <input id="tgInput" type="text" maxlength="500" data-i18n-attr="placeholder:chatPlaceholder;aria-label:chatPlaceholder">
+              <button class="btn" id="tgSend" type="submit" data-i18n-attr="aria-label:chatSend">
+                <svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </form>
+            <p class="tg-note" data-i18n="chatNote">Sé respetuoso. Los mensajes pueden ser eliminados por los moderadores.</p>
+          </div>
+        </div>
         <div class="tool-empty" id="chatEmpty" hidden>
           <svg viewBox="0 0 24 24" width="40" height="40"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.6c-.5.4-1.3 0-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
           <strong data-i18n="chatSoonTitle">Chat</strong>
