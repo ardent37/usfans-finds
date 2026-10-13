@@ -493,7 +493,7 @@ button { -webkit-tap-highlight-color: transparent; }
   background: transparent;
   transition: background .2s;
 }
-.resizer:hover::before, .resizer:focus-visible::before, .app.resizing .resizer::before { background: var(--accent); }
+.resizer:hover:not(:has(.expand-tab:hover))::before, .resizer:focus-visible::before, .app.resizing .resizer::before { background: var(--accent); }
 .app.collapsed .resizer { display: none; }
 .app.resizing, .app.resizing * { cursor: col-resize !important; user-select: none; }
 /* Mientras se arrastra, el iframe no debe "tragarse" el ratón */
@@ -504,7 +504,7 @@ button { -webkit-tap-highlight-color: transparent; }
 .expand-tab {
   position: absolute;
   top: 50%;
-  left: 0;
+  left: 100%;
   z-index: 2;
   width: 26px;
   height: 64px;
