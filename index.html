@@ -43,9 +43,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="/styles.css?v=23">
+  <link rel="stylesheet" href="/styles.css?v=24">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" defer></script>
-  <script src="/app.js?v=26" defer></script>
+  <script src="/app.js?v=27" defer></script>
 </head>
 <body>
   <div class="app" id="app">
@@ -169,7 +169,7 @@
     <!-- Divisor: arrastrar para cambiar el ancho del panel; la pestaña lo expande a pantalla completa -->
     <div class="resizer" id="resizer" role="separator" aria-orientation="vertical" tabindex="0" data-i18n-attr="aria-label:resizePanel;title:resizePanel">
       <button class="expand-tab" id="expandTab" type="button" data-i18n-attr="aria-label:expandPanel;title:expandPanel">
-        <svg viewBox="0 0 24 24" width="14" height="14"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     </div>
 
@@ -188,10 +188,20 @@
         <button class="btn ghost" id="goHome" data-i18n="goHome" hidden>← Registro</button>
         <a class="btn" id="openTab" href="#" target="_blank" rel="noopener" data-i18n="openBrowser">Abrir en navegador</a>
       </div>
+      <div class="urlbar" id="urlbar">
+        <button class="icon-btn sm" id="copyUrl" type="button" data-i18n-attr="title:copyLink;aria-label:copyLink">
+          <svg class="ico-copy" viewBox="0 0 24 24" width="15" height="15"><rect x="8.5" y="8.5" width="11" height="11" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M15.5 8.5V7A2.5 2.5 0 0 0 13 4.5H7A2.5 2.5 0 0 0 4.5 7v6A2.5 2.5 0 0 0 7 15.5h1.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          <svg class="ico-done" viewBox="0 0 24 24" width="15" height="15"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <a class="icon-btn sm" id="openTabIcon" href="#" target="_blank" rel="noopener" data-i18n-attr="title:openInBrowser;aria-label:openInBrowser">
+          <svg viewBox="0 0 24 24" width="15" height="15"><path d="M14 5h5v5M19 5l-8 8M18 14v3.5A2.5 2.5 0 0 1 15.5 20h-9A2.5 2.5 0 0 1 4 17.5v-9A2.5 2.5 0 0 1 6.5 6H10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <input class="url-field" id="urlField" type="text" readonly spellcheck="false" autocomplete="off" aria-label="URL">
+      </div>
       <div class="frame-wrap" id="frames">
         <div class="frame-loading" id="frameLoading"><span class="spinner"></span></div>
       </div>
-      <p class="hint" data-i18n-html="hint">Haz clic derecho en un producto para ver más opciones. Si algo no carga o no puedes pagar, usa <strong>Abrir en navegador</strong>.</p>
+      <p class="hint" data-i18n-html="hint">Haz clic derecho en un producto para ver más opciones. Si algo no carga o no puedes pagar, abre la página en tu navegador con el icono de la barra de direcciones.</p>
     </main>
   </div>
   <div class="menu" id="menu" role="menu" hidden></div>
@@ -200,7 +210,7 @@
   <div class="pull-tab pull-left" id="swipeEdge" role="button" tabindex="0" data-i18n-attr="aria-label:showProducts">
     <span class="pull-tab-grip"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
   </div>
-  <div class="pull-tab pull-right" id="swipeBack" role="button" tabindex="0" data-i18n-attr="aria-label:coachCloseText">
+  <div class="pull-tab pull-right" id="swipeBack" role="button" tabindex="0" data-i18n-attr="aria-label:backToUsfans">
     <span class="pull-tab-grip"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
   </div>
 

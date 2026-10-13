@@ -87,7 +87,7 @@ const I18N = {
     homeTitle: 'Registro en USFans',
     goHome: '← Registro',
     openBrowser: 'Abrir en navegador',
-    hint: 'Haz clic derecho en un producto para ver más opciones. Si algo no carga o no puedes pagar, usa <strong>Abrir en navegador</strong>.',
+    hint: 'Haz clic derecho en un producto para ver más opciones. Si algo no carga o no puedes pagar, ábrela en tu navegador con el icono de la barra de direcciones.',
     openHere: 'Abrir aquí',
     openNewTab: 'Abrir en pestaña nueva',
     openNewTabFocus: 'Abrir en pestaña nueva y verla',
@@ -148,10 +148,9 @@ const I18N = {
     seoDescription: 'Busca entre miles de productos de Taobao, Weidian y 1688, consulta fotos QC y compra con USFans sin salir de la web. Chat de la comunidad incluido.',
     seoH1: 'Agente de compras en China: busca productos, mira fotos QC y compra con USFans',
     viewQc: 'Ver fotos QC',
-    coachOpenTitle: 'Desliza desde aquí →',
+    coachOpenTitle: '← Pulsa la pestaña',
     coachOpenText: 'para ver los productos y las herramientas.',
-    coachCloseTitle: '← Desliza desde aquí',
-    coachCloseText: 'para volver a USFans.',
+    backToUsfans: 'Volver a USFans',
     coachSkip: 'Saltar',
     spreadsheet: 'Spreadsheet',
     toolChat: 'Chat',
@@ -195,7 +194,7 @@ const I18N = {
     homeTitle: 'Sign up on USFans',
     goHome: '← Sign up',
     openBrowser: 'Open in browser',
-    hint: 'Right-click a product for more options. If something doesn’t load or you can’t pay, use <strong>Open in browser</strong>.',
+    hint: 'Right-click a product for more options. If something doesn’t load or you can’t pay, open the page in your browser with the icon in the address bar.',
     openHere: 'Open here',
     openNewTab: 'Open in new tab',
     openNewTabFocus: 'Open in new tab and switch to it',
@@ -256,10 +255,9 @@ const I18N = {
     seoDescription: 'Search thousands of Taobao, Weidian and 1688 products, check QC photos and buy with USFans without leaving the site. Community chat included.',
     seoH1: 'China shopping agent: search products, check QC photos and buy with USFans',
     viewQc: 'View QC photos',
-    coachOpenTitle: 'Swipe from here →',
+    coachOpenTitle: '← Tap the tab',
     coachOpenText: 'to see the products and tools.',
-    coachCloseTitle: '← Swipe from here',
-    coachCloseText: 'to go back to USFans.',
+    backToUsfans: 'Back to USFans',
     coachSkip: 'Skip',
     spreadsheet: 'Spreadsheet',
     toolChat: 'Chat',
@@ -292,7 +290,7 @@ const els = {
   list: $('list'), grid: $('grid'), sentinel: $('sentinel'),
   frames: $('frames'), frameLoading: $('frameLoading'),
   tabs: $('tabs'), newTab: $('newTab'), menu: $('menu'),
-  openTab: $('openTab'), goHome: $('goHome'),
+  openTab: $('openTab'), openTabIcon: $('openTabIcon'), urlField: $('urlField'), copyUrl: $('copyUrl'), goHome: $('goHome'),
   openDrawer: $('openDrawer'), closeDrawer: $('closeDrawer'), main: $('main'),
 };
 
@@ -642,6 +640,9 @@ const tabTitle = (tab) => (tab.url === CONFIG.homeUrl ? t('homeTitle') : tab.tit
 function syncActiveUi() {
   els.frameLoading.classList.toggle('done', activeTab.loaded);
   els.openTab.href = activeTab.url;
+  els.openTabIcon.href = activeTab.url;
+  els.urlField.value = activeTab.url.replace(/^https?:\/\//, '');
+  els.urlField.title = activeTab.url;
   els.goHome.hidden = activeTab.url === CONFIG.homeUrl;
 }
 
@@ -851,9 +852,9 @@ function applyDrawerState(open) {
 }
 
 /* ---------- Deslizar en móvil ---------- */
-// Las dos vistas son capas a pantalla completa y la que entra lo hace POR ENCIMA de la otra:
+// Las dos vistas son capas a pantalla completa y el panel de herramientas va SIEMPRE por encima de USFans:
 //  - abrir:  el panel entra desde la izquierda sobre USFans (quieto); la lengüeta › va pegada a su borde derecho.
-//  - volver: USFans entra desde la derecha sobre el panel (quieto); la lengüeta ‹ va pegada a su borde izquierdo.
+//  - volver: el panel sale hacia la izquierda y deja USFans a la vista; la lengüeta ‹ va pegada a su borde derecho.
 // Todo se mueve con un único progreso p (0 = USFans, 1 = panel), calculado en cada fotograma.
 const slide = { p: 0, dir: 'open', raf: 0 };
 const TAB_W = 26;
@@ -864,17 +865,13 @@ function renderSlide(p, dir) {
   const w = window.innerWidth;
   const tabL = $('swipeEdge');
   const tabR = $('swipeBack');
+  els.drawer.style.transform = `translateX(${(p - 1) * w}px)`;
+  els.main.style.transform = 'translateX(0)';
   if (dir === 'open') {
-    els.app.classList.remove('main-front');
-    els.drawer.style.transform = `translateX(${(p - 1) * w}px)`;
-    els.main.style.transform = 'translateX(0)';
     tabL.style.transform = `translateX(${p * w}px)`;
     tabL.style.visibility = 'visible';
     tabR.style.visibility = 'hidden';
   } else {
-    els.app.classList.add('main-front');
-    els.drawer.style.transform = 'translateX(0)';
-    els.main.style.transform = `translateX(${p * w}px)`;
     tabR.style.transform = `translateX(${(p - 1) * w}px)`;
     tabR.style.visibility = 'visible';
     tabL.style.visibility = 'hidden';
@@ -886,18 +883,15 @@ function settleSlide(open, changed) {
   const w = window.innerWidth;
   const tabL = $('swipeEdge');
   const tabR = $('swipeBack');
+  els.main.style.transform = 'translateX(0)';
   if (open) {
-    els.app.classList.remove('main-front');
     els.drawer.style.transform = 'translateX(0)';
-    els.main.style.transform = `translateX(${w}px)`; // queda debajo del panel, fuera de la vista
     tabL.style.visibility = 'hidden';
     tabR.style.visibility = 'visible';
     tabR.style.transform = 'translateX(0)';
     if (changed) tabR.animate([{ transform: `translateX(${TAB_W + 6}px)` }, { transform: 'translateX(0)' }], { duration: 320, easing: 'cubic-bezier(.32,.72,0,1)' });
   } else {
-    els.app.classList.add('main-front');
-    els.main.style.transform = 'translateX(0)';
-    els.drawer.style.transform = `translateX(${-w}px)`; // queda debajo de USFans, fuera de la vista
+    els.drawer.style.transform = `translateX(${-w}px)`;
     tabR.style.visibility = 'hidden';
     tabL.style.visibility = 'visible';
     tabL.style.transform = 'translateX(0)';
@@ -949,7 +943,6 @@ function resetSlideStyles() {
     el.style.transform = '';
     el.style.visibility = '';
   });
-  els.app.classList.remove('main-front');
 }
 
 // --- Gestos ---
@@ -1071,9 +1064,11 @@ function bindDrawerSwipe() {
 }
 
 function setupSwipe() {
-  bindPullTarget($('swipeEdge'), () => 'open');
+  // Desde USFans solo se abre pulsando la pestaña; desde el panel se vuelve pulsando o deslizando
+  const openTools = $('swipeEdge');
+  openTools.addEventListener('click', () => { if (isMobile()) setDrawer(true); });
+  openTools.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDrawer(true); } });
   bindPullTarget($('swipeBack'), () => 'close');
-  bindPullTarget($('coach'), () => (els.app.classList.contains('collapsed') ? 'open' : 'close'));
   bindDrawerSwipe();
   // Al girar el móvil o cambiar entre móvil y escritorio, todo vuelve a su sitio
   let wasMobile = isMobile();
@@ -1085,9 +1080,9 @@ function setupSwipe() {
   });
 }
 
-/* ---------- Guía de gestos (primera vez en móvil) ---------- */
-// Paso 1: deslizar la lengüeta izquierda (productos). Al hacerlo, 2 s después, paso 2: la derecha (USFans).
-const coach = { step: 0, timer: null };
+/* ---------- Guía de inicio (primera vez en móvil) ---------- */
+// Un solo paso: señala la pestaña de la izquierda; al abrir el panel (o al saltar) desaparece.
+const coach = { step: 0 };
 
 function coachDone() {
   try { return localStorage.getItem('coachDone') === '1'; } catch (e) { return false; }
@@ -1095,40 +1090,21 @@ function coachDone() {
 
 function finishCoach() {
   coach.step = 0;
-  clearTimeout(coach.timer);
   $('coach').hidden = true;
   document.body.classList.remove('coaching');
   try { localStorage.setItem('coachDone', '1'); } catch (e) { /* sin almacenamiento */ }
 }
 
-function showCoachStep(step) {
-  coach.step = step;
-  const left = step === 2;
-  const box = $('coach');
-  box.classList.toggle('step1', !left);
-  box.classList.toggle('step2', left);
-  $('coachTitle').textContent = t(left ? 'coachCloseTitle' : 'coachOpenTitle');
-  $('coachText').textContent = t(left ? 'coachCloseText' : 'coachOpenText');
-  // Reinicia las animaciones al cambiar de paso
-  box.hidden = true;
-  void box.offsetWidth;
-  box.hidden = false;
+function showCoach() {
+  coach.step = 1;
+  $('coachTitle').textContent = t('coachOpenTitle');
+  $('coachText').textContent = t('coachOpenText');
+  $('coach').hidden = false;
   document.body.classList.add('coaching');
 }
 
 function coachOnDrawer(open) {
-  if (!coach.step) return;
-  if (coach.step === 1 && open) {
-    coach.step = -1; // esperando el paso 2
-    $('coach').hidden = true;
-    document.body.classList.remove('coaching');
-    coach.timer = setTimeout(() => {
-      if (!els.app.classList.contains('collapsed')) showCoachStep(2);
-      else finishCoach();
-    }, 2000);
-  } else if (coach.step === 2 && !open) {
-    finishCoach();
-  }
+  if (coach.step && open) finishCoach();
 }
 
 function startCoach() {
@@ -1136,7 +1112,7 @@ function startCoach() {
   $('coachSkip').addEventListener('pointerdown', (e) => e.stopPropagation());
   $('coachSkip').onclick = finishCoach;
   setTimeout(() => {
-    if (els.app.classList.contains('collapsed')) showCoachStep(1);
+    if (els.app.classList.contains('collapsed')) showCoach();
   }, 900);
 }
 
@@ -1704,6 +1680,15 @@ async function init() {
   startCoach();
 
   els.openDrawer.onclick = () => setDrawer(els.app.classList.contains('collapsed'));
+  els.copyUrl.onclick = () => {
+    const done = () => {
+      els.copyUrl.classList.add('copied');
+      setTimeout(() => els.copyUrl.classList.remove('copied'), 1400);
+    };
+    const url = activeTab.url;
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(url).then(done, () => {});
+    else { els.urlField.select(); document.execCommand('copy'); done(); }
+  };
   els.closeDrawer.onclick = () => setDrawer(false);
   els.goHome.onclick = () => navigateTab(activeTab, CONFIG.homeUrl, HOME_TITLE);
   els.newTab.onclick = () => createTab(CONFIG.homeUrl, HOME_TITLE);
