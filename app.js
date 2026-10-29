@@ -1489,6 +1489,7 @@ async function init() {
   renderChips();
   applyFilters();
   window.Accounts?.start();
+  window.Hauls?.start();
 }
 
 document.addEventListener('DOMContentLoaded', init);

@@ -1237,3 +1237,23 @@ body.modal-open { overflow: hidden; }
   transition: opacity .25s, transform .25s var(--ease);
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* Subcarpetas, compartir y totales de los hauls */
+.haul-actions { display: inline-flex; align-items: center; gap: 2px; }
+.haul-actions .btn { display: inline-flex; align-items: center; gap: 4px; }
+.haul-total { margin: -6px 0 12px; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.haul-title.static { cursor: default; }
+.haul-title.static:hover { background: transparent; }
+.haul-badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: var(--r-pill); background: var(--fill); color: var(--ink-2); font-size: 12px; font-weight: 500; }
+.haul-save { margin-bottom: 4px; }
+.haul-save .btn { height: 38px; }
+.haul-meta span, .card .price span { font-variant-numeric: tabular-nums; }
+.folder-card, .add-card { cursor: pointer; border: 0; font: inherit; text-align: left; width: 100%; }
+.folder-card .thumb { background: transparent; }
+.folder-card .haul-cover { width: 100%; height: 100%; margin: 0; border-radius: var(--r-md); }
+.add-card { background: transparent; box-shadow: none; border: 1.5px dashed color-mix(in srgb, var(--muted) 45%, transparent); color: var(--muted); }
+.add-card:hover { box-shadow: none; border-color: var(--accent); color: var(--accent); }
+.add-card .thumb { background: transparent; color: inherit; }
+.add-card .name { color: inherit; min-height: 2.66em; }
+.card-act.move { right: auto; left: 12px; }
+.card-act.busy { opacity: .5; pointer-events: none; }

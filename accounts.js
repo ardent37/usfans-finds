@@ -659,6 +659,7 @@ const Accounts = (() => {
           p.price = parsePrice(p.priceRaw);
           p.done = true;
           fillCard(c, p);
+          window.Hauls?.enriched(p);
         } else if (g.status === 'gone') {
           p.gone = true;
           p.done = true;
