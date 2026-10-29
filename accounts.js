@@ -373,10 +373,15 @@ const Accounts = (() => {
     await loadCatalogs();
   }
 
+  // Una foto y un nombre no cambian; el precio se vuelve a pedir si tiene más de una semana
+  const PRICE_TTL = 7 * 24 * 3600 * 1000;
+  const loadedImports = new Set(); // hojas cuyo catálogo se leyó entero (solo esas se pueden guardar de vuelta)
+
   const toProduct = (x, imp) => ({
     name: x.n || t('importedProduct'),
     unnamed: !x.n,
-    done: !!(x.i && x.p), // ya tiene foto y precio: no hace falta pedirlos
+    done: !!(x.i && x.p && x.u && Date.now() - x.u < PRICE_TTL), // foto y precio recientes: no hace falta pedirlos
+    updated: x.u || 0,
     link: x.l,
     priceRaw: x.p || '',
     image: x.i || '',
@@ -393,6 +398,7 @@ const Accounts = (() => {
       if (!imp.resolved) continue;
       try {
         const list = await call(`/imports/${imp.id}/catalog`);
+        loadedImports.add(imp.id);
         for (const x of list) {
           if (!x.l) continue;
           const prev = byLink.get(x.l);
@@ -671,6 +677,42 @@ const Accounts = (() => {
       el('div', { class: 'modal-form' }, el('button', { class: 'btn modal-btn', type: 'button', text: t('importClose'), onclick: closeModal })));
   }
 
+  /* ---------- Guardar lo cargado en la hoja de la cuenta ---------- */
+  const dirty = new Set();   // productos con datos nuevos
+  let saveTimer = 0;
+  let lastSave = 0;
+  const SAVE_EVERY = 90000;
+
+  function markDirty(p) {
+    dirty.add(p);
+    if (saveTimer) return;
+    const wait = Math.max(20000, SAVE_EVERY - (Date.now() - lastSave));
+    saveTimer = setTimeout(saveCatalogs, wait);
+  }
+
+  async function saveCatalogs() {
+    clearTimeout(saveTimer);
+    saveTimer = 0;
+    if (!dirty.size || !me) return;
+    const ids = new Set();
+    dirty.forEach((p) => Object.keys(p.imps || {}).forEach((id) => ids.add(id)));
+    dirty.clear();
+    lastSave = Date.now();
+    for (const id of ids) {
+      const imp = me.imports.find((i) => i.id === id);
+      if (!imp || !loadedImports.has(id)) continue;
+      const list = state.imp.filter((p) => p.imps[id]).map((p) => ({
+        n: p.unnamed ? '' : p.name, l: p.link, t: p.imps[id], i: p.image || undefined, p: p.priceRaw || undefined, u: p.updated || undefined,
+      }));
+      if (list.length !== imp.resolved) continue; // el catálogo no coincide: mejor no tocarlo
+      try {
+        await call(`/imports/${id}/catalog?done=1&count=${list.length}`, { method: 'PUT', body: JSON.stringify(list) });
+      } catch { /* se reintentará con los próximos datos */ }
+    }
+  }
+
+  document.addEventListener('visibilitychange', () => { if (document.hidden && dirty.size) saveCatalogs(); });
+
   /* ---------- Fotos y precios a demanda ---------- */
   // Solo se piden los productos que aparecen en pantalla, pocos a la vez y con pausas; el servidor guarda en caché lo que ya conoce
   // Cada navegador consulta la API pública de USFans por su cuenta (USFans permite esta web), con pocas peticiones, pausas y una caché
@@ -729,19 +771,21 @@ const Accounts = (() => {
     const cache = goodsLoad();
     const items = [];
     let limited = false;
+    let network = 0;
     for (const r of list) {
       const k = `${r.platform}/${r.id}`;
       const hit = cache.get(k);
       if (hit && Date.now() - hit.ts < GOODS_TTL) { items.push({ k, ...hit.v }); continue; }
       if (limited || goodsCount >= GOODS_MAX_PER_VISIT) { items.push({ k, status: 'pending' }); continue; }
       goodsCount++;
+      network++;
       const v = await fetchGoodsDirect(r.platform, r.id);
       if (v.status === 'limited') limited = true;
       if (v.status === 'ok' || v.status === 'gone') { cache.set(k, { ts: Date.now(), v }); goodsSave(); }
       items.push({ k, ...v, status: v.status === 'limited' || v.status === 'error' ? 'pending' : v.status });
       await sleep(600);
     }
-    return { items, limited, capped: goodsCount >= GOODS_MAX_PER_VISIT };
+    return { items, limited, network, capped: goodsCount >= GOODS_MAX_PER_VISIT };
   }
 
   const watching = new Map(); // tarjeta → producto
@@ -753,7 +797,7 @@ const Accounts = (() => {
       else lazy.queue.delete(e.target);
     }
     pump(0);
-  }, { rootMargin: '200px' });
+  }, { rootMargin: '600px 0px' }); // se adelanta lo que está justo debajo; lo visible tiene prioridad (ver pump)
 
   function watch(card, p) {
     if (!API || p.done) return;
@@ -766,7 +810,22 @@ const Accounts = (() => {
     lazy.timer = setTimeout(async () => {
       lazy.timer = 0;
       lazy.queue.forEach((c) => { if (!c.isConnected) { lazy.queue.delete(c); watching.delete(c); } });
-      const cards = [...lazy.queue].slice(0, 3);
+      // Prioridad: lo que se ve, de arriba abajo; primero lo que no tiene foto, después lo que solo hay que refrescar
+      const H = window.innerHeight;
+      const rank = (c) => {
+        const r = c.getBoundingClientRect();
+        const visible = r.bottom > 0 && r.top < H;
+        return (visible ? 0 : 1e6) + Math.abs(r.top) + (watching.get(c).image ? 5e5 : 0);
+      };
+      const sorted = [...lazy.queue].sort((a, b) => rank(a) - rank(b));
+      // Lo que ya está en la caché de este navegador se pinta de golpe; a la red van pocos cada vez
+      const cache = goodsLoad();
+      const isCached = (c) => {
+        const r = parseProductLink(watching.get(c).link);
+        const hit = r && cache.get(`${r.platform}/${r.id}`);
+        return !!hit && Date.now() - hit.ts < GOODS_TTL;
+      };
+      const cards = [...sorted.filter(isCached).slice(0, 30), ...sorted.filter((c) => !isCached(c)).slice(0, 3)];
       if (!cards.length || !me) return;
       const batch = cards.map((c) => ({ c, p: watching.get(c), r: parseProductLink(watching.get(c).link) })).filter((x) => x.r);
       let res;
@@ -786,43 +845,53 @@ const Accounts = (() => {
           if (p.unnamed) { p.name = g.n; p.unnamed = false; p._n = norm(`${p.name} ${p.sections.join(' ')}`); }
           p.price = parsePrice(p.priceRaw);
           p.done = true;
+          p.updated = Date.now();
           fillCard(c, p);
           window.Hauls?.enriched(p);
+          markDirty(p);
         } else if (g.status === 'gone') {
           p.gone = true;
           p.done = true;
           c.remove();
-        } else {
+        } else if (g.status === 'empty') {
           const k = `${r.platform}/${r.id}`;
           const n = (lazy.tries.get(k) || 0) + 1;
           lazy.tries.set(k, n);
-          if (n >= 4) p.done = true; // no se insiste más
-        }
+          if (n >= 4) p.done = true; // USFans no devuelve nada de este producto: no se insiste más
+        } // 'pending' (USFans limitando o error de red): se reintentará más tarde sin contar como intento
         if (p.done) { lazy.queue.delete(c); watching.delete(c); seenIo.unobserve(c); }
       });
-      pump(lazy.backoff || 1000);
+      pump(lazy.backoff || (res.network ? 1000 : 40));
     }, delay);
   }
 
   function fillCard(card, p) {
     const thumb = card.querySelector('.thumb');
-    if (p.image && thumb && !thumb.querySelector('img')) {
-      const img = document.createElement('img');
-      img.decoding = 'async';
-      img.referrerPolicy = 'no-referrer';
-      img.alt = '';
-      img.src = p.image;
-      img.onerror = () => img.classList.add('broken');
-      thumb.appendChild(img);
+    if (p.image && thumb) {
+      const old = thumb.querySelector('img');
+      if (!old) {
+        const img = document.createElement('img');
+        img.decoding = 'async';
+        img.referrerPolicy = 'no-referrer';
+        img.alt = '';
+        img.src = p.image;
+        img.onerror = () => img.classList.add('broken');
+        thumb.appendChild(img);
+      } else if (old.getAttribute('src') !== p.image) {
+        old.src = p.image;
+      }
     }
     const nameEl = card.querySelector('.name');
     if (nameEl) nameEl.textContent = p.name;
     const meta = card.querySelector('.meta');
-    if (meta && p.priceRaw && !meta.querySelector('.price')) {
-      const pr = document.createElement('span');
-      pr.className = 'price';
+    if (meta && p.priceRaw) {
+      let pr = meta.querySelector('.price');
+      if (!pr) {
+        pr = document.createElement('span');
+        pr.className = 'price';
+        meta.appendChild(pr);
+      }
       pr.textContent = formatPrice(p.priceRaw);
-      meta.appendChild(pr);
     }
   }
 
