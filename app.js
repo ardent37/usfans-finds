@@ -371,6 +371,7 @@ function sampleProducts() {
 function applyFilters() {
   const tokens = norm(state.query).split(/\s+/).filter(Boolean);
   let list = state.all.filter((p) =>
+    !p.gone &&
     (!state.mine || p.src === 1 || p.mine) &&
     (!state.category || p.categories.includes(state.category)) &&
     tokens.every((t) => p._n.includes(t)));
@@ -458,6 +459,7 @@ function cardFor(p) {
   }
 
   a.append(thumb, meta);
+  if (p.src === 1 && !p.done) window.Accounts?.watch(a, p);   // importado: la foto y el precio se piden al verlo
   return a;
 }
 

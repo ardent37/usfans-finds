@@ -48,6 +48,8 @@ Object.assign(I18N.es, {
   importScanning: 'Buscando productos…',
   importName: 'Nombre de la hoja',
   importFound: 'Hemos encontrado {n} productos.',
+  importedProduct: 'Producto',
+  importSaving: 'Guardando…',
   importFoundSkipped: '{n} enlaces no son compatibles y se omitirán.',
   importFoundKnown: '{n} ya están en la hoja original.',
   importStart: 'Importar',
@@ -111,6 +113,8 @@ Object.assign(I18N.en, {
   importScanning: 'Looking for products…',
   importName: 'Sheet name',
   importFound: 'We found {n} products.',
+  importedProduct: 'Product',
+  importSaving: 'Saving…',
   importFoundSkipped: '{n} links aren’t supported and will be skipped.',
   importFoundKnown: '{n} are already in the original sheet.',
   importStart: 'Import',
@@ -289,14 +293,16 @@ const Accounts = (() => {
   }
 
   const toProduct = (x, sheet) => ({
-    name: x.n || '',
+    name: x.n || t('importedProduct'),
+    unnamed: !x.n,
+    done: !!(x.i && x.p), // ya tiene foto y precio: no hace falta pedirlos
     link: x.l,
     priceRaw: x.p || '',
     image: x.i || '',
     categories: [],
     sections: [sheet],
     price: parsePrice(x.p),
-    _n: norm(`${x.n} ${sheet}`),
+    _n: norm(`${x.n || ''} ${sheet}`),
   });
 
   async function loadCatalogs() {
@@ -373,17 +379,33 @@ const Accounts = (() => {
 
   const URL_RE = /https?:\/\/[^\s"'<>]+/g;
 
-  // Saca los productos de una hoja sin importar cómo esté organizada: busca enlaces de producto en cualquier celda
-  function collect(texts, found) {
-    for (const text of texts) {
-      for (const u of String(text).match(URL_RE) || []) {
+  // Nombre del producto: el texto descriptivo más cercano al enlace dentro de su fila
+  function pickName(cells, ci) {
+    const order = cells.map((_, j) => j).filter((j) => j !== ci).sort((x, y) => Math.abs(x - ci) - Math.abs(y - ci));
+    const ok = (v) => {
+      const x = String(v ?? '').trim();
+      return x.length >= 5 && !/https?:\/\//i.test(x) && /\p{L}{2}/u.test(x) && !/^[\p{Sc}\d.,\s%]+$/u.test(x);
+    };
+    // Texto escrito junto al enlace en la misma celda
+    const own = String(cells[ci]).replace(URL_RE, ' ').replace(/[()[\]:]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (ok(own)) return own.slice(0, 120);
+    for (const j of order) if (ok(cells[j])) return String(cells[j]).trim().slice(0, 120);
+    return '';
+  }
+
+  // Saca los productos de una fila o lista de textos sin importar cómo esté organizada la hoja
+  function collect(cells, found) {
+    cells.forEach((cell, ci) => {
+      for (const u of String(cell).match(URL_RE) || []) {
         const r = parseProductLink(u);
         if (!r) continue;
         const key = `${r.platform}/${r.id}`;
-        if (found.has(key)) continue;
-        found.set(key, { p: r.platform, id: r.id, ok: !r.encrypted || r.fromUsfans });
+        const name = pickName(cells, ci);
+        const prev = found.get(key);
+        if (prev) { if (!prev.name && name) prev.name = name; continue; }
+        found.set(key, { p: r.platform, id: r.id, ok: !r.encrypted || r.fromUsfans, name });
       }
-    }
+    });
   }
 
   async function scanTabs(url, tabs) {
@@ -402,7 +424,7 @@ const Accounts = (() => {
     // Enlaces escondidos en el texto de las celdas: el CSV no los trae, la vista web de la hoja sí
     try {
       const { groups } = await call(`/sheet/links?url=${encodeURIComponent(url)}&gids=${tabs.map((x) => x.gid).join(',')}`);
-      for (const tab of tabs) collect(groups[tab.gid] || [], found);
+      for (const tab of tabs) for (const u of groups[tab.gid] || []) collect([u], found);
     } catch { /* si falla, se sigue con lo que trae el CSV */ }
     if (!found.size && blocked) throw Object.assign(new Error('blocked'), { code: 'blocked' });
     return found;
@@ -477,95 +499,107 @@ const Accounts = (() => {
         el('label', { class: 'modal-label', text: t('importName') }), el('div', { class: 'field' }, name), start));
   }
 
-  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
   async function runImport(url, name, items) {
     const err = errBox();
-    const label = el('p', { class: 'modal-sub', text: t('importProgress', { done: 0, total: items.length }) });
-    const fill = el('div', { class: 'prog-fill' });
-    let cancelled = false;
-    const cancel = el('button', { class: 'btn ghost', type: 'button', text: t('importCancel'), onclick: () => { cancelled = true; } });
-    openModal(...heading(t('importModalTitle')), label, el('div', { class: 'prog' }, fill), err, el('div', { class: 'modal-row' }, cancel));
+    openModal(...heading(t('importSaving')), el('div', { class: 'modal-spin' }, el('span', { class: 'spinner' })), err);
     busy = true;
-
-    let id;
     try {
-      id = (await call('/imports', { method: 'POST', body: { name, source: url, total: items.length } })).id;
+      const { id } = await call('/imports', { method: 'POST', body: { name, source: url, total: items.length } });
+      // Sin consultar a USFans: se guarda el enlace y el nombre de la hoja; la foto y el precio se piden al verlos
+      const list = items.map((x) => ({ n: x.name, l: `https://usfans.com/product/${x.p}/${x.id}` }));
+      await call(`/imports/${id}/catalog?done=1`, { method: 'PUT', body: JSON.stringify(list) });
     } catch (ex) {
       busy = false;
       importModal();
       showErr($('modalCard').querySelector('.modal-err'), sheetErr(ex));
       return;
     }
-
-    const results = new Map(); // clave → producto o null (no disponible)
-    const attempts = new Map(); // respuestas vacías por producto (USFans las da a veces cuando va cargado)
-    const toList = () => items.map((x) => results.get(`${x.p}/${x.id}`)).filter(Boolean);
-    const save = (done) => call(`/imports/${id}/catalog${done ? '?done=1' : ''}`, { method: 'PUT', body: JSON.stringify(toList()) });
-    const paint = () => {
-      const done = results.size;
-      label.textContent = t('importProgress', { done: done.toLocaleString(locale()), total: items.length.toLocaleString(locale()) });
-      fill.style.width = `${Math.round((done / items.length) * 100)}%`;
-    };
-    let pending = items.slice();
-    let stalled = 0; // rondas seguidas sin avanzar
-    let lastSaved = 0;
-    let wait = 4000;
-
-    try {
-      while (pending.length && !cancelled && stalled < 12) {
-        const before = results.size;
-        const queue = pending.slice();
-        pending = [];
-        let limited = false;
-        const worker = async () => {
-          while (queue.length && !cancelled && !limited) {
-            const batch = queue.splice(0, 10);
-            let r;
-            try {
-              r = await call('/resolve', { method: 'POST', body: { items: batch.map((x) => ({ p: x.p, id: x.id })) } });
-            } catch (ex) {
-              if (ex.status === 401) throw ex;
-              pending.push(...batch);
-              limited = true;
-              continue;
-            }
-            if (r.limited) limited = true;
-            r.items.forEach((g, i) => {
-              if (g.status === 'ok') results.set(g.k, { n: g.n, l: `https://usfans.com/product/${g.k}`, i: g.i, p: g.p });
-              else if (g.status === 'gone') results.set(g.k, null);
-              else if (g.status === 'empty' && (attempts.set(g.k, (attempts.get(g.k) || 0) + 1).get(g.k) >= 4)) results.set(g.k, null);
-              else pending.push(batch[i]);
-            });
-            paint();
-          }
-        };
-        await Promise.all([worker(), worker()]);
-        pending.push(...queue);
-        if (results.size - lastSaved >= 500) { lastSaved = results.size; await save(false); }
-        if (results.size > before) { stalled = 0; wait = 4000; }
-        else stalled++;
-        if (pending.length && !cancelled) {
-          if (limited) { label.textContent = t('importLimited'); wait = Math.min(wait * 1.5, 30000); }
-          await sleep(limited ? wait : 1500);
-        }
-      }
-      await save(true);
-    } catch (ex) {
-      busy = false;
-      showErr(err, sheetErr(ex));
-      await refreshMe();
-      return;
-    }
-
     busy = false;
-    const imported = toList().length;
-    const gone = [...results.values()].filter((v) => v === null).length;
     await refreshMe();
-    openModal(closeBtn(), ...heading(cancelled ? t('importCancelled', { n: imported.toLocaleString(locale()) }) : t('importDone', { n: imported.toLocaleString(locale()) })),
-      el('div', { class: 'modal-form' },
-        gone ? el('p', { class: 'modal-note', text: t('importUnavailable', { n: gone.toLocaleString(locale()) }) }) : null,
-        el('button', { class: 'btn modal-btn', type: 'button', text: t('importClose'), onclick: closeModal })));
+    openModal(closeBtn(), ...heading(t('importDone', { n: items.length.toLocaleString(locale()) })),
+      el('div', { class: 'modal-form' }, el('button', { class: 'btn modal-btn', type: 'button', text: t('importClose'), onclick: closeModal })));
+  }
+
+  /* ---------- Fotos y precios a demanda ---------- */
+  // Solo se piden los productos que aparecen en pantalla, pocos a la vez y con pausas; el servidor guarda en caché lo que ya conoce
+  const watching = new Map(); // tarjeta → producto
+  const lazy = { queue: new Set(), timer: 0, backoff: 0, tries: new Map() };
+  const seenIo = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (!watching.has(e.target)) continue;
+      if (e.isIntersecting) lazy.queue.add(e.target);
+      else lazy.queue.delete(e.target);
+    }
+    pump(0);
+  }, { rootMargin: '200px' });
+
+  function watch(card, p) {
+    if (!API || p.done) return;
+    watching.set(card, p);
+    seenIo.observe(card);
+  }
+
+  function pump(delay) {
+    if (lazy.timer || !lazy.queue.size) return;
+    lazy.timer = setTimeout(async () => {
+      lazy.timer = 0;
+      lazy.queue.forEach((c) => { if (!c.isConnected) { lazy.queue.delete(c); watching.delete(c); } });
+      const cards = [...lazy.queue].slice(0, 4);
+      if (!cards.length || !me) return;
+      const batch = cards.map((c) => ({ c, p: watching.get(c), r: parseProductLink(watching.get(c).link) })).filter((x) => x.r);
+      let res;
+      try {
+        res = await call('/resolve', { method: 'POST', body: { items: batch.map((x) => ({ p: x.r.platform, id: x.r.id })) } });
+      } catch {
+        lazy.backoff = Math.min((lazy.backoff || 4000) * 2, 60000);
+        return pump(lazy.backoff);
+      }
+      lazy.backoff = res.limited ? Math.min((lazy.backoff || 4000) * 2, 60000) : 0;
+      res.items.forEach((g, i) => {
+        const { c, p, r } = batch[i];
+        if (g.status === 'ok') {
+          p.image = g.i || p.image;
+          p.priceRaw = g.p || p.priceRaw;
+          if (p.unnamed) { p.name = g.n; p.unnamed = false; p._n = norm(`${p.name} ${p.sections.join(' ')}`); }
+          p.price = parsePrice(p.priceRaw);
+          p.done = true;
+          fillCard(c, p);
+        } else if (g.status === 'gone') {
+          p.gone = true;
+          p.done = true;
+          c.remove();
+        } else {
+          const k = `${r.platform}/${r.id}`;
+          const n = (lazy.tries.get(k) || 0) + 1;
+          lazy.tries.set(k, n);
+          if (n >= 4) p.done = true; // no se insiste más
+        }
+        if (p.done) { lazy.queue.delete(c); watching.delete(c); seenIo.unobserve(c); }
+      });
+      pump(lazy.backoff || 1500);
+    }, delay);
+  }
+
+  function fillCard(card, p) {
+    const thumb = card.querySelector('.thumb');
+    if (p.image && thumb && !thumb.querySelector('img')) {
+      const img = document.createElement('img');
+      img.decoding = 'async';
+      img.referrerPolicy = 'no-referrer';
+      img.alt = '';
+      img.src = p.image;
+      img.onerror = () => img.classList.add('broken');
+      thumb.appendChild(img);
+    }
+    const nameEl = card.querySelector('.name');
+    if (nameEl) nameEl.textContent = p.name;
+    const meta = card.querySelector('.meta');
+    if (meta && p.priceRaw && !meta.querySelector('.price')) {
+      const pr = document.createElement('span');
+      pr.className = 'price';
+      pr.textContent = formatPrice(p.priceRaw);
+      meta.appendChild(pr);
+    }
   }
 
   /* ---------- Arranque ---------- */
@@ -586,6 +620,6 @@ const Accounts = (() => {
     if (token) refreshMe();
   }
 
-  return { start };
+  return { start, watch };
 })();
 window.Accounts = Accounts;
