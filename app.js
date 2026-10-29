@@ -41,6 +41,8 @@ const CONFIG = {
 
   currency: '€',     // símbolo si el precio de la hoja es solo un número
   pageSize: 60,      // productos que se pintan por tanda al hacer scroll
+  // API de cuentas e importación. Solo en local por ahora; vacío = la función no aparece.
+  accountApi: ['localhost', '127.0.0.1'].includes(location.hostname) ? 'http://localhost:8787' : '',
   maxTabs: 10,       // al pasarse, se cierra la pestaña inactiva más antigua
 };
 
@@ -227,6 +229,7 @@ const els = {
 const state = {
   all: [], filtered: [], shown: 0,
   query: '', category: '', sort: 'default', activeId: null,
+  orig: [], imp: [], mine: false,   // productos de la hoja original, importados y filtro "mis hojas"
 };
 
 const isMobile = () => window.matchMedia('(max-width: 820px)').matches;
@@ -368,6 +371,7 @@ function sampleProducts() {
 function applyFilters() {
   const tokens = norm(state.query).split(/\s+/).filter(Boolean);
   let list = state.all.filter((p) =>
+    (!state.mine || p.src === 1 || p.mine) &&
     (!state.category || p.categories.includes(state.category)) &&
     tokens.every((t) => p._n.includes(t)));
 
@@ -375,6 +379,9 @@ function applyFilters() {
   if (state.sort === 'price-asc') list = list.slice().sort(byPrice);
   else if (state.sort === 'price-desc') list = list.slice().sort((a, b) => byPrice(b, a));
   else if (state.sort === 'name') list = list.slice().sort((a, b) => a.name.localeCompare(b.name, lang));
+
+  // La hoja original siempre va primero; los productos importados, después
+  if (state.imp.length && !state.mine) list = [...list.filter((p) => !p.src), ...list.filter((p) => p.src)];
 
   state.filtered = list;
   state.shown = 0;
@@ -387,6 +394,24 @@ function applyFilters() {
     return;
   }
   renderMore();
+}
+
+// Une los productos de la hoja original con los importados (sin repetir los que ya estén en la original)
+const productKeyOf = (link) => {
+  const r = parseProductLink(link);
+  return r ? `${r.platform}/${r.id}` : link;
+};
+
+function setImported(list) {
+  state.imp = list;
+  const mineKeys = new Set(list.map((p) => productKeyOf(p.link)));
+  state.orig.forEach((p) => { p.mine = mineKeys.has(productKeyOf(p.link)); }); // también están en mis hojas
+  const seen = new Set(state.orig.map((p) => productKeyOf(p.link)));
+  const extra = list.filter((p) => !seen.has(productKeyOf(p.link)));
+  extra.forEach((p, i) => { p.id = state.orig.length + i; p.src = 1; });
+  state.all = state.orig.concat(extra);
+  if (!list.length) state.mine = false;
+  if (state.all.length) { renderChips(); applyFilters(); }
 }
 
 function renderCount() {
@@ -1427,8 +1452,10 @@ async function init() {
   }
   // A partir de aquí el contador lo escribe renderCount(), no applyStaticTexts()
   els.count.removeAttribute('data-i18n');
+  state.orig = state.all;
   renderChips();
   applyFilters();
+  window.Accounts?.start();
 }
 
 document.addEventListener('DOMContentLoaded', init);
