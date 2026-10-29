@@ -58,6 +58,7 @@ Object.assign(I18N.es, {
   importClose: 'Cerrar',
   importCancelled: 'Importación detenida: se han guardado {n} productos.',
   importNone: 'No hemos encontrado enlaces de productos de Taobao, Weidian o 1688 en esa hoja.',
+  importBlocked: 'No hemos podido leer los productos de esa hoja. Puede que su propietario haya desactivado la descarga y la copia para los lectores.',
   importPrivate: 'No se puede leer esa hoja. Tiene que estar compartida como «cualquiera con el enlace puede ver».',
   importNotFound: 'No encontramos esa hoja. Revisa el enlace.',
   importBadUrl: 'Pega un enlace de Google Sheets (docs.google.com/spreadsheets/…).',
@@ -120,6 +121,7 @@ Object.assign(I18N.en, {
   importClose: 'Close',
   importCancelled: 'Import stopped: {n} products were saved.',
   importNone: 'We couldn’t find Taobao, Weidian or 1688 product links in that sheet.',
+  importBlocked: 'We couldn’t read the products in that sheet. Its owner may have turned off downloading and copying for viewers.',
   importPrivate: 'That sheet can’t be read. It must be shared as “anyone with the link can view”.',
   importNotFound: 'We couldn’t find that sheet. Check the link.',
   importBadUrl: 'Paste a Google Sheets link (docs.google.com/spreadsheets/…).',
@@ -365,7 +367,7 @@ const Accounts = (() => {
 
   /* ---------- Importar ---------- */
   const sheetErr = (e) => ({
-    bad_url: t('importBadUrl'), private: t('importPrivate'), not_found: t('importNotFound'), too_big: t('importTooBig'),
+    bad_url: t('importBadUrl'), blocked: t('importBlocked'), private: t('importPrivate'), not_found: t('importNotFound'), too_big: t('importTooBig'),
     max_imports: t('importMax'), max_products: t('importMaxProducts'),
   }[e.code] || t('errGeneric'));
 
@@ -386,16 +388,23 @@ const Accounts = (() => {
 
   async function scanTabs(url, tabs) {
     const found = new Map();
+    let blocked = false;
     for (const tab of tabs) {
-      const csv = await call(`/sheet/csv?url=${encodeURIComponent(url)}&gid=${tab.gid}`, { text: true });
-      const rows = Papa.parse(csv, { skipEmptyLines: true }).data;
-      for (const row of rows) collect(row, found);
+      try {
+        const csv = await call(`/sheet/csv?url=${encodeURIComponent(url)}&gid=${tab.gid}`, { text: true });
+        for (const row of Papa.parse(csv, { skipEmptyLines: true }).data) collect(row, found);
+      } catch (ex) {
+        // Si el propietario ha desactivado la descarga, se lee la vista web de la hoja (más abajo)
+        if (ex.code !== 'private') throw ex;
+        blocked = true;
+      }
     }
     // Enlaces escondidos en el texto de las celdas: el CSV no los trae, la vista web de la hoja sí
     try {
       const { groups } = await call(`/sheet/links?url=${encodeURIComponent(url)}&gids=${tabs.map((x) => x.gid).join(',')}`);
       for (const tab of tabs) collect(groups[tab.gid] || [], found);
     } catch { /* si falla, se sigue con lo que trae el CSV */ }
+    if (!found.size && blocked) throw Object.assign(new Error('blocked'), { code: 'blocked' });
     return found;
   }
 
