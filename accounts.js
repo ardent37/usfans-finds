@@ -499,46 +499,55 @@ const Accounts = (() => {
     }
 
     const results = new Map(); // clave → producto o null (no disponible)
+    const attempts = new Map(); // respuestas vacías por producto (USFans las da a veces cuando va cargado)
     const toList = () => items.map((x) => results.get(`${x.p}/${x.id}`)).filter(Boolean);
     const save = (done) => call(`/imports/${id}/catalog${done ? '?done=1' : ''}`, { method: 'PUT', body: JSON.stringify(toList()) });
+    const paint = () => {
+      const done = results.size;
+      label.textContent = t('importProgress', { done: done.toLocaleString(locale()), total: items.length.toLocaleString(locale()) });
+      fill.style.width = `${Math.round((done / items.length) * 100)}%`;
+    };
     let pending = items.slice();
-    let failedRounds = 0;
+    let stalled = 0; // rondas seguidas sin avanzar
     let lastSaved = 0;
+    let wait = 4000;
 
     try {
-      while (pending.length && !cancelled && failedRounds < 6) {
+      while (pending.length && !cancelled && stalled < 12) {
+        const before = results.size;
         const queue = pending.slice();
         pending = [];
         let limited = false;
         const worker = async () => {
           while (queue.length && !cancelled && !limited) {
-            const batch = queue.splice(0, 20);
+            const batch = queue.splice(0, 10);
             let r;
             try {
               r = await call('/resolve', { method: 'POST', body: { items: batch.map((x) => ({ p: x.p, id: x.id })) } });
             } catch (ex) {
               if (ex.status === 401) throw ex;
               pending.push(...batch);
+              limited = true;
               continue;
             }
             if (r.limited) limited = true;
             r.items.forEach((g, i) => {
               if (g.status === 'ok') results.set(g.k, { n: g.n, l: `https://usfans.com/product/${g.k}`, i: g.i, p: g.p });
               else if (g.status === 'gone') results.set(g.k, null);
+              else if (g.status === 'empty' && (attempts.set(g.k, (attempts.get(g.k) || 0) + 1).get(g.k) >= 4)) results.set(g.k, null);
               else pending.push(batch[i]);
             });
-            const done = results.size;
-            label.textContent = t('importProgress', { done: done.toLocaleString(locale()), total: items.length.toLocaleString(locale()) });
-            fill.style.width = `${Math.round((done / items.length) * 100)}%`;
+            paint();
           }
         };
-        await Promise.all([worker(), worker(), worker()]);
+        await Promise.all([worker(), worker()]);
         pending.push(...queue);
-        if (results.size - lastSaved >= 1000) { lastSaved = results.size; await save(false); }
+        if (results.size - lastSaved >= 500) { lastSaved = results.size; await save(false); }
+        if (results.size > before) { stalled = 0; wait = 4000; }
+        else stalled++;
         if (pending.length && !cancelled) {
-          failedRounds = limited ? failedRounds + 1 : failedRounds;
-          if (limited) label.textContent = t('importLimited');
-          await sleep(limited ? 5000 : 1500);
+          if (limited) { label.textContent = t('importLimited'); wait = Math.min(wait * 1.5, 30000); }
+          await sleep(limited ? wait : 1500);
         }
       }
       await save(true);
