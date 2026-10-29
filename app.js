@@ -229,7 +229,7 @@ const els = {
 const state = {
   all: [], filtered: [], shown: 0,
   query: '', category: '', sort: 'default', activeId: null,
-  orig: [], imp: [], mine: false,   // productos de la hoja original, importados y filtro "mis hojas"
+  orig: [], imp: [], sheet: '', tab: '',   // productos de la hoja original, importados, y hoja/pestaña importada elegida como filtro
 };
 
 const isMobile = () => window.matchMedia('(max-width: 820px)').matches;
@@ -372,7 +372,8 @@ function applyFilters() {
   const tokens = norm(state.query).split(/\s+/).filter(Boolean);
   let list = state.all.filter((p) =>
     !p.gone &&
-    (!state.mine || p.src === 1 || p.mine) &&
+    (!state.sheet || p.imps?.[state.sheet]) &&
+    (!state.tab || p.imps?.[state.sheet]?.includes(state.tab)) &&
     (!state.category || p.categories.includes(state.category)) &&
     tokens.every((t) => p._n.includes(t)));
 
@@ -382,7 +383,7 @@ function applyFilters() {
   else if (state.sort === 'name') list = list.slice().sort((a, b) => a.name.localeCompare(b.name, lang));
 
   // La hoja original siempre va primero; los productos importados, después
-  if (state.imp.length && !state.mine) list = [...list.filter((p) => !p.src), ...list.filter((p) => p.src)];
+  if (state.imp.length) list = [...list.filter((p) => !p.src), ...list.filter((p) => p.src)];
 
   state.filtered = list;
   state.shown = 0;
@@ -405,13 +406,14 @@ const productKeyOf = (link) => {
 
 function setImported(list) {
   state.imp = list;
-  const mineKeys = new Set(list.map((p) => productKeyOf(p.link)));
-  state.orig.forEach((p) => { p.mine = mineKeys.has(productKeyOf(p.link)); }); // también están en mis hojas
+  // Los productos de mis hojas que ya están en la original se muestran como los de la original, pero siguen contando para el filtro de cada hoja
+  const byKey = new Map(list.map((p) => [productKeyOf(p.link), p]));
+  state.orig.forEach((p) => { p.imps = byKey.get(productKeyOf(p.link))?.imps || null; });
   const seen = new Set(state.orig.map((p) => productKeyOf(p.link)));
   const extra = list.filter((p) => !seen.has(productKeyOf(p.link)));
   extra.forEach((p, i) => { p.id = state.orig.length + i; p.src = 1; });
   state.all = state.orig.concat(extra);
-  if (!list.length) state.mine = false;
+  if (state.sheet && !list.some((p) => p.imps?.[state.sheet])) { state.sheet = ''; state.tab = ''; }
   if (state.all.length) { renderChips(); applyFilters(); }
 }
 

@@ -48,6 +48,8 @@ Object.assign(I18N.es, {
   importScanning: 'Buscando productos…',
   importName: 'Nombre de la hoja',
   importFound: 'Hemos encontrado {n} productos.',
+  importColor: 'Color de la hoja',
+  allTabs: 'Todas',
   importedProduct: 'Producto',
   importSaving: 'Guardando…',
   importFoundSkipped: '{n} enlaces no son compatibles y se omitirán.',
@@ -113,6 +115,8 @@ Object.assign(I18N.en, {
   importScanning: 'Looking for products…',
   importName: 'Sheet name',
   importFound: 'We found {n} products.',
+  importColor: 'Sheet colour',
+  allTabs: 'All',
   importedProduct: 'Product',
   importSaving: 'Saving…',
   importFoundSkipped: '{n} links aren’t supported and will be skipped.',
@@ -273,10 +277,40 @@ const Accounts = (() => {
   /* ---------- Sesión y catálogo ---------- */
   function paintAccount() {
     $('accountBtn').classList.toggle('on', !!me);
-    const has = me && state.imp.length;
-    $('mineBtn').hidden = !has;
-    $('mineCount').textContent = has ? state.imp.length.toLocaleString(locale()) : '';
-    $('mineBtn').setAttribute('aria-pressed', String(state.mine));
+    renderSheets();
+  }
+
+  // Filas bajo las categorías: una con las hojas importadas (cada una de su color) y otra con las pestañas de la hoja elegida
+  function renderSheets() {
+    const row = $('sheetChips');
+    const trow = $('tabChips');
+    row.replaceChildren();
+    trow.replaceChildren();
+    const imps = me ? me.imports.filter((i) => i.resolved) : [];
+    row.hidden = !imps.length;
+    trow.hidden = true;
+    if (!imps.length) { state.sheet = ''; state.tab = ''; return; }
+    for (const imp of imps) {
+      const b = el('button', { class: 'chip sheet', type: 'button', text: imp.name, 'aria-pressed': String(state.sheet === imp.id) });
+      b.style.setProperty('--c', imp.color || '#0a84ff');
+      b.onclick = () => {
+        state.sheet = state.sheet === imp.id ? '' : imp.id;
+        state.tab = '';
+        renderSheets();
+        applyFilters();
+      };
+      row.append(b);
+    }
+    const sel = imps.find((i) => i.id === state.sheet);
+    if (sel && (sel.tabs || []).length > 1) {
+      trow.hidden = false;
+      for (const name of ['', ...sel.tabs]) {
+        const b = el('button', { class: 'chip sheet-tab', type: 'button', text: name || t('allTabs'), 'aria-pressed': String(state.tab === name) });
+        b.style.setProperty('--c', sel.color || '#0a84ff');
+        b.onclick = () => { state.tab = name; renderSheets(); applyFilters(); };
+        trow.append(b);
+      }
+    }
   }
 
   async function refreshMe() {
@@ -292,7 +326,7 @@ const Accounts = (() => {
     await loadCatalogs();
   }
 
-  const toProduct = (x, sheet) => ({
+  const toProduct = (x, imp) => ({
     name: x.n || t('importedProduct'),
     unnamed: !x.n,
     done: !!(x.i && x.p), // ya tiene foto y precio: no hace falta pedirlos
@@ -300,26 +334,27 @@ const Accounts = (() => {
     priceRaw: x.p || '',
     image: x.i || '',
     categories: [],
-    sections: [sheet],
+    sections: [imp.name],
+    imps: { [imp.id]: x.t || [] },
     price: parsePrice(x.p),
-    _n: norm(`${x.n || ''} ${sheet}`),
+    _n: norm(`${x.n || ''} ${imp.name}`),
   });
 
   async function loadCatalogs() {
-    const all = [];
-    const seen = new Set();
+    const byLink = new Map();
     for (const imp of me.imports) {
       if (!imp.resolved) continue;
       try {
         const list = await call(`/imports/${imp.id}/catalog`);
         for (const x of list) {
-          if (!x.l || seen.has(x.l)) continue;
-          seen.add(x.l);
-          all.push(toProduct(x, imp.name));
+          if (!x.l) continue;
+          const prev = byLink.get(x.l);
+          if (prev) { prev.imps[imp.id] = x.t || []; continue; } // el mismo producto en varias hojas
+          byLink.set(x.l, toProduct(x, imp));
         }
       } catch { /* esa hoja no se pudo cargar: se sigue con las demás */ }
     }
-    setImported(all);
+    setImported([...byLink.values()]);
     paintAccount();
   }
 
@@ -327,7 +362,8 @@ const Accounts = (() => {
     token = null;
     me = null;
     store.set(null);
-    state.mine = false;
+    state.sheet = '';
+    state.tab = '';
     setImported([]);
     paintAccount();
     modal().hidden = true;
@@ -378,13 +414,18 @@ const Accounts = (() => {
   }[e.code] || t('errGeneric'));
 
   const URL_RE = /https?:\/\/[^\s"'<>]+/g;
+  const SHEET_COLORS = ['#0a84ff', '#30b050', '#af52de', '#ff2d55', '#ff9f0a', '#00b5b0', '#5e5ce6', '#8e8e93'];
 
-  // Nombre del producto: el texto descriptivo más cercano al enlace dentro de su fila
+  // Nombre del producto: el texto descriptivo más cercano al enlace dentro de su fila.
+  // A igual distancia se prefiere el de la izquierda: es lo más probable que sea el nombre de ese producto.
+  const GENERIC = /^(comprar|buy|link|enlace|ver|click|clic|aqu[ií]|here|url|nota|note|foto|photo|imagen|image|item|producto|product)\b[\s\d.:#-]*$/i;
+
   function pickName(cells, ci) {
-    const order = cells.map((_, j) => j).filter((j) => j !== ci).sort((x, y) => Math.abs(x - ci) - Math.abs(y - ci));
+    const order = cells.map((_, j) => j).filter((j) => j !== ci)
+      .sort((x, y) => Math.abs(x - ci) - Math.abs(y - ci) || x - y);
     const ok = (v) => {
       const x = String(v ?? '').trim();
-      return x.length >= 5 && !/https?:\/\//i.test(x) && /\p{L}{2}/u.test(x) && !/^[\p{Sc}\d.,\s%]+$/u.test(x);
+      return x.length >= 5 && !/https?:\/\//i.test(x) && /\p{L}{2}/u.test(x) && !/^[\p{Sc}\d.,\s%]+$/u.test(x) && !GENERIC.test(x);
     };
     // Texto escrito junto al enlace en la misma celda
     const own = String(cells[ci]).replace(URL_RE, ' ').replace(/[()[\]:]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -394,7 +435,7 @@ const Accounts = (() => {
   }
 
   // Saca los productos de una fila o lista de textos sin importar cómo esté organizada la hoja
-  function collect(cells, found) {
+  function collect(cells, found, tabName) {
     cells.forEach((cell, ci) => {
       for (const u of String(cell).match(URL_RE) || []) {
         const r = parseProductLink(u);
@@ -402,30 +443,44 @@ const Accounts = (() => {
         const key = `${r.platform}/${r.id}`;
         const name = pickName(cells, ci);
         const prev = found.get(key);
-        if (prev) { if (!prev.name && name) prev.name = name; continue; }
-        found.set(key, { p: r.platform, id: r.id, ok: !r.encrypted || r.fromUsfans, name });
+        if (prev) {
+          if (!prev.name && name) prev.name = name;
+          if (tabName) prev.tabs.add(tabName);
+          continue;
+        }
+        found.set(key, { p: r.platform, id: r.id, ok: !r.encrypted || r.fromUsfans, name, tabs: new Set(tabName ? [tabName] : []) });
       }
     });
   }
 
   async function scanTabs(url, tabs) {
     const found = new Map();
+    const csvOk = [];
     let blocked = false;
     for (const tab of tabs) {
       try {
         const csv = await call(`/sheet/csv?url=${encodeURIComponent(url)}&gid=${tab.gid}`, { text: true });
-        for (const row of Papa.parse(csv, { skipEmptyLines: true }).data) collect(row, found);
+        for (const row of Papa.parse(csv, { skipEmptyLines: true }).data) collect(row, found, tab.name);
+        csvOk.push(tab);
       } catch (ex) {
-        // Si el propietario ha desactivado la descarga, se lee la vista web de la hoja (más abajo)
         if (ex.code !== 'private') throw ex;
-        blocked = true;
+        // El propietario ha desactivado la descarga: se lee la tabla de la vista web de la hoja
+        try {
+          const { rows } = await call(`/sheet/rows?url=${encodeURIComponent(url)}&gid=${tab.gid}`);
+          for (const row of rows) collect(row, found, tab.name);
+        } catch (ex2) {
+          if (ex2.code !== 'private') throw ex2;
+          blocked = true;
+        }
       }
     }
     // Enlaces escondidos en el texto de las celdas: el CSV no los trae, la vista web de la hoja sí
-    try {
-      const { groups } = await call(`/sheet/links?url=${encodeURIComponent(url)}&gids=${tabs.map((x) => x.gid).join(',')}`);
-      for (const tab of tabs) for (const u of groups[tab.gid] || []) collect([u], found);
-    } catch { /* si falla, se sigue con lo que trae el CSV */ }
+    if (csvOk.length) {
+      try {
+        const { groups } = await call(`/sheet/links?url=${encodeURIComponent(url)}&gids=${csvOk.map((x) => x.gid).join(',')}`);
+        for (const tab of csvOk) for (const u of groups[tab.gid] || []) collect([u], found, tab.name);
+      } catch { /* si falla, se sigue con lo que trae el CSV */ }
+    }
     if (!found.size && blocked) throw Object.assign(new Error('blocked'), { code: 'blocked' });
     return found;
   }
@@ -491,22 +546,33 @@ const Accounts = (() => {
     const name = el('input', { type: 'text', maxlength: '80', 'aria-label': t('importName') });
     name.value = (info.title || 'Spreadsheet').slice(0, 80);
     const start = el('button', { class: 'btn modal-btn', type: 'button', text: t('importStart') });
-    start.onclick = () => runImport(url, name.value.trim() || 'Spreadsheet', todo);
+    const usedColors = new Set((me?.imports || []).map((i) => i.color));
+    let color = SHEET_COLORS.find((c) => !usedColors.has(c)) || SHEET_COLORS[0];
+    const swatches = el('div', { class: 'swatches' });
+    const paintSwatches = () => swatches.querySelectorAll('.swatch').forEach((s) => s.setAttribute('aria-pressed', String(s.dataset.c === color)));
+    for (const c of SHEET_COLORS) {
+      const s = el('button', { class: 'swatch', type: 'button', 'data-c': c, 'aria-label': c, onclick: () => { color = c; paintSwatches(); } });
+      s.style.setProperty('--c', c);
+      swatches.append(s);
+    }
+    paintSwatches();
+    start.onclick = () => runImport(url, name.value.trim() || 'Spreadsheet', todo, color, tabs.map((x) => x.name));
     openModal(closeBtn(), ...heading(t('importFound', { n: todo.length.toLocaleString(locale()) })),
       el('div', { class: 'modal-form' },
         skipped ? el('p', { class: 'modal-note', text: t('importFoundSkipped', { n: skipped }) }) : null,
         dup ? el('p', { class: 'modal-note', text: t('importFoundKnown', { n: dup }) }) : null,
-        el('label', { class: 'modal-label', text: t('importName') }), el('div', { class: 'field' }, name), start));
+        el('label', { class: 'modal-label', text: t('importName') }), el('div', { class: 'field' }, name),
+        el('label', { class: 'modal-label', text: t('importColor') }), swatches, start));
   }
 
-  async function runImport(url, name, items) {
+  async function runImport(url, name, items, color, tabNames) {
     const err = errBox();
     openModal(...heading(t('importSaving')), el('div', { class: 'modal-spin' }, el('span', { class: 'spinner' })), err);
     busy = true;
     try {
-      const { id } = await call('/imports', { method: 'POST', body: { name, source: url, total: items.length } });
+      const { id } = await call('/imports', { method: 'POST', body: { name, source: url, total: items.length, color, tabs: tabNames } });
       // Sin consultar a USFans: se guarda el enlace y el nombre de la hoja; la foto y el precio se piden al verlos
-      const list = items.map((x) => ({ n: x.name, l: `https://usfans.com/product/${x.p}/${x.id}` }));
+      const list = items.map((x) => ({ n: x.name, l: `https://usfans.com/product/${x.p}/${x.id}`, t: [...x.tabs] }));
       await call(`/imports/${id}/catalog?done=1`, { method: 'PUT', body: JSON.stringify(list) });
     } catch (ex) {
       busy = false;
@@ -609,11 +675,6 @@ const Accounts = (() => {
     $('importBtn').hidden = false;
     $('accountBtn').onclick = () => (me ? accountModal() : loginModal());
     $('importBtn').onclick = () => (me ? importModal() : loginModal(importModal));
-    $('mineBtn').onclick = () => {
-      state.mine = !state.mine;
-      paintAccount();
-      applyFilters();
-    };
     modal().addEventListener('pointerdown', (e) => { if (e.target === modal()) closeModal(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal().hidden) closeModal(); });
     token = store.get();
