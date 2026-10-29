@@ -393,7 +393,7 @@ const Accounts = (() => {
     }
     // Enlaces escondidos en el texto de las celdas: el CSV no los trae, la vista web de la hoja sí
     try {
-      const { groups } = await call(`/sheet/links?url=${encodeURIComponent(url)}`);
+      const { groups } = await call(`/sheet/links?url=${encodeURIComponent(url)}&gids=${tabs.map((x) => x.gid).join(',')}`);
       for (const tab of tabs) collect(groups[tab.gid] || [], found);
     } catch { /* si falla, se sigue con lo que trae el CSV */ }
     return found;
