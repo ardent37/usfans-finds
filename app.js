@@ -41,8 +41,8 @@ const CONFIG = {
 
   currency: '€',     // símbolo si el precio de la hoja es solo un número
   pageSize: 60,      // productos que se pintan por tanda al hacer scroll
-  // API de cuentas e importación. Solo en local por ahora; vacío = la función no aparece.
-  accountApi: ['localhost', '127.0.0.1'].includes(location.hostname) ? 'http://localhost:8787' : '',
+  // API de cuentas, importación y hauls (Cloudflare Workers). En local se usa la API de este ordenador; vacío = la función no aparece.
+  accountApi: ['localhost', '127.0.0.1'].includes(location.hostname) ? 'http://localhost:8787' : 'https://usfans-api.ardentcone.workers.dev',
   maxTabs: 10,       // al pasarse, se cierra la pestaña inactiva más antigua
 };
 
