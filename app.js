@@ -38,14 +38,6 @@ const CONFIG = {
     ["Women's Spreadsheet", 'Mujer', 'Women'],
   ],
 
-  // Chat: servidor de Discord mostrado con WidgetBot (dash.widgetbot.io). Vacío = pestaña Chat sin chat.
-  // Chat de Telegram (Worker de E:\usfans-chat). Mientras estén vacíos se usa el chat de Discord de más abajo.
-  chatApi: 'https://usfans-chat.ardentcone.workers.dev',            // URL del Worker, p. ej. https://usfans-chat.TU-SUBDOMINIO.workers.dev
-  telegramBotId: '8827203183',      // número del bot (la parte del token anterior a los dos puntos)
-  telegramFolderUrl: 'https://t.me/addlist/cT5nsOWvuD8xMTNk',  // enlace de tu carpeta de Telegram (t.me/addlist/...)
-
-  discordServer: '1456400905585955004',
-  discordChannel: '1456400907821650107',   // canal con el que se abre el chat (#general); vacío = lista de canales
 
   currency: '€',     // símbolo si el precio de la hoja es solo un número
   pageSize: 60,      // productos que se pintan por tanda al hacer scroll
@@ -116,36 +108,8 @@ const I18N = {
     qcErrorText: 'Inténtalo de nuevo en unos segundos.',
     qcEncryptedText: 'Taobao y algunos agentes ocultan el ID tras un código cifrado que no se puede traducir desde fuera. Abre el producto en Taobao y pega el enlace que tenga el ID numérico (id=1234567890).',
     qcOpenProduct: 'Abrir producto',
-    chatTitle: 'Chat de la comunidad',
-    chatLoginTitle: 'Chatea con la comunidad',
-    chatLoginText: 'Entra con Telegram para leer y escribir. Es el mismo chat que el de nuestro grupo de Telegram.',
-    chatLoginBtn: 'Entrar con Telegram',
-    chatJoinTitle: 'Primero únete a la comunidad',
-    chatJoinText: 'Para chatear tienes que seguir nuestros canales de Telegram. Añade la carpeta y vuelve aquí.',
-    chatJoinBtn: 'Añadir la carpeta de Telegram',
-    chatRecheck: 'Ya me he unido, comprobar',
-    chatBannedTitle: 'No puedes usar este chat',
-    chatBannedText: 'Tu cuenta ha sido expulsada de la comunidad.',
-    chatErrorTitle: 'No se pudo conectar',
-    chatErrorText: 'Inténtalo de nuevo en unos segundos.',
-    chatAuthText: 'No hemos podido comprobar tu sesión de Telegram. Inténtalo otra vez.',
-    chatRetry: 'Reintentar',
-    chatPlaceholder: 'Escribe un mensaje',
-    chatSend: 'Enviar',
-    chatOnline: '{n} en línea',
-    chatLogout: 'Salir',
-    chatConnecting: 'Conectando…',
-    chatReconnecting: 'Reconectando…',
-    chatEmpty: 'Aún no hay mensajes. ¡Escribe el primero!',
-    chatMuted: 'Estás silenciado: puedes leer pero no escribir.',
-    chatNote: 'Sé respetuoso. Los mensajes pueden ser eliminados por los moderadores.',
-    chatErrLinks: 'No se pueden enviar enlaces.',
-    chatErrSlow: 'Vas muy rápido. Espera un momento.',
-    chatErrMuted: 'Estás silenciado y no puedes escribir.',
-    chatErrSend: 'No se pudo enviar. Inténtalo de nuevo.',
-    chatViaTelegram: 'Telegram',
     seoTitle: 'USFans+ | Productos, Spreadsheets, QC',
-    seoDescription: 'Busca entre miles de productos de Taobao, Weidian y 1688, consulta fotos QC y compra con USFans sin salir de la web. Chat de la comunidad incluido.',
+    seoDescription: 'Busca entre miles de productos de Taobao, Weidian y 1688, consulta fotos QC y compra con USFans sin salir de la web.',
     seoH1: 'Agente de compras en China: busca productos, mira fotos QC y compra con USFans',
     viewQc: 'Ver fotos QC',
     coachOpenTitle: '← Pulsa la pestaña',
@@ -153,9 +117,6 @@ const I18N = {
     backToUsfans: 'Volver a USFans',
     coachSkip: 'Saltar',
     spreadsheet: 'Spreadsheet',
-    toolChat: 'Chat',
-    chatSoonTitle: 'Chat',
-    chatSoonText: 'Muy pronto podrás chatear aquí.',
     resizePanel: 'Arrastra para cambiar el ancho (doble clic: tamaño original)',
     expandPanel: 'Expandir panel',
     restorePanel: 'Volver a mostrar USFans',
@@ -223,36 +184,8 @@ const I18N = {
     qcErrorText: 'Please try again in a few seconds.',
     qcEncryptedText: 'Taobao and some agents hide the ID behind an encrypted code that can’t be translated from outside. Open the product on Taobao and paste the link that has the numeric ID (id=1234567890).',
     qcOpenProduct: 'Open product',
-    chatTitle: 'Community chat',
-    chatLoginTitle: 'Chat with the community',
-    chatLoginText: 'Sign in with Telegram to read and write. It’s the same chat as our Telegram group.',
-    chatLoginBtn: 'Sign in with Telegram',
-    chatJoinTitle: 'Join the community first',
-    chatJoinText: 'To chat you need to follow our Telegram channels. Add the folder and come back here.',
-    chatJoinBtn: 'Add the Telegram folder',
-    chatRecheck: 'I’ve joined, check again',
-    chatBannedTitle: 'You can’t use this chat',
-    chatBannedText: 'Your account has been removed from the community.',
-    chatErrorTitle: 'Couldn’t connect',
-    chatErrorText: 'Please try again in a few seconds.',
-    chatAuthText: 'We couldn’t verify your Telegram session. Please try again.',
-    chatRetry: 'Retry',
-    chatPlaceholder: 'Write a message',
-    chatSend: 'Send',
-    chatOnline: '{n} online',
-    chatLogout: 'Sign out',
-    chatConnecting: 'Connecting…',
-    chatReconnecting: 'Reconnecting…',
-    chatEmpty: 'No messages yet. Write the first one!',
-    chatMuted: 'You are muted: you can read but not write.',
-    chatNote: 'Be respectful. Messages may be removed by moderators.',
-    chatErrLinks: 'Links can’t be sent.',
-    chatErrSlow: 'You’re going too fast. Wait a moment.',
-    chatErrMuted: 'You are muted and can’t write.',
-    chatErrSend: 'Couldn’t send. Please try again.',
-    chatViaTelegram: 'Telegram',
     seoTitle: 'USFans+ | Products, Spreadsheets, QC',
-    seoDescription: 'Search thousands of Taobao, Weidian and 1688 products, check QC photos and buy with USFans without leaving the site. Community chat included.',
+    seoDescription: 'Search thousands of Taobao, Weidian and 1688 products, check QC photos and buy with USFans without leaving the site.',
     seoH1: 'China shopping agent: search products, check QC photos and buy with USFans',
     viewQc: 'View QC photos',
     coachOpenTitle: '← Tap the tab',
@@ -260,9 +193,6 @@ const I18N = {
     backToUsfans: 'Back to USFans',
     coachSkip: 'Skip',
     spreadsheet: 'Spreadsheet',
-    toolChat: 'Chat',
-    chatSoonTitle: 'Chat',
-    chatSoonText: 'Chat is coming soon.',
     resizePanel: 'Drag to resize (double-click: default size)',
     expandPanel: 'Expand panel',
     restorePanel: 'Show USFans again',
@@ -646,7 +576,7 @@ function syncActiveUi() {
   els.goHome.hidden = activeTab.url === CONFIG.homeUrl;
 }
 
-function createTab(url, title, { activate = true } = {}) {
+function createTab(url, title, { activate = true, lazy = false } = {}) {
   if (tabs.length >= CONFIG.maxTabs) {
     const oldest = tabs.find((t) => t !== activeTab);
     if (oldest) closeTab(oldest);
@@ -661,7 +591,8 @@ function createTab(url, title, { activate = true } = {}) {
     tab.loaded = true;
     if (tab === activeTab) els.frameLoading.classList.add('done');
   });
-  iframe.src = url;
+  if (lazy) tab.lazy = true; // pestaña restaurada: no carga hasta que se abre
+  else iframe.src = url;
   els.frames.insertBefore(iframe, els.frameLoading);
   tabs.push(tab);
   if (activate) activateTab(tab);
@@ -671,6 +602,7 @@ function createTab(url, title, { activate = true } = {}) {
 
 function activateTab(tab) {
   activeTab = tab;
+  if (tab.lazy) { tab.lazy = false; tab.iframe.src = tab.url; }
   tabs.forEach((t) => { t.iframe.hidden = t !== tab; });
   syncActiveUi();
   renderTabs();
@@ -694,7 +626,30 @@ function closeTab(tab) {
   else renderTabs();
 }
 
+// Las pestañas abiertas se recuerdan entre visitas (solo la última dirección que abrió esta web, no la navegación interna de USFans)
+const TABS_KEY = 'openTabs';
+
+function saveTabs() {
+  try {
+    localStorage.setItem(TABS_KEY, JSON.stringify({ active: tabs.indexOf(activeTab), tabs: tabs.map((x) => ({ url: x.url, title: x.title })) }));
+  } catch (e) { /* sin almacenamiento */ }
+}
+
+function restoreTabs() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(TABS_KEY) || 'null');
+    const ok = (u) => /^https:\/\/(www\.)?usfans\.com\//.test(u || '');
+    const list = (saved?.tabs || []).filter((x) => ok(x.url)).slice(0, CONFIG.maxTabs);
+    if (!list.length) return false;
+    const idx = Math.min(Math.max(0, saved.active | 0), list.length - 1);
+    list.forEach((x, i) => createTab(x.url, x.title || '', { activate: false, lazy: i !== idx }));
+    activateTab(tabs[idx]);
+    return true;
+  } catch (e) { return false; }
+}
+
 function renderTabs() {
+  saveTabs();
   els.tabs.replaceChildren();
   for (const t of tabs) {
     const el = document.createElement('div');
@@ -801,12 +756,10 @@ function onProductClick(e) {
 const TOOL_ICONS = {
   products: '<svg viewBox="0 0 24 24" width="22" height="22"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 3.5v17" stroke="currentColor" stroke-width="1.6"/></svg>',
   qc: '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M8.5 6l1.2-1.8c.2-.4.6-.7 1.1-.7h2.4c.5 0 .9.3 1.1.7L15.5 6H18a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 19H6a2.5 2.5 0 0 1-2.5-2.5v-8A2.5 2.5 0 0 1 6 6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
-  chat: '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.6c-.5.4-1.3 0-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
 };
 const TOOLS = [
   { id: 'products', labelKey: 'spreadsheet' },
   { id: 'qc', labelKey: 'toolQc' },
-  { id: 'chat', labelKey: 'toolChat' },
 ];
 let activeTool = 'products';
 
@@ -826,7 +779,6 @@ function renderTools() {
 
 function showTool(id) {
   activeTool = id;
-  if (id === 'chat') loadChat();
   TOOLS.forEach((x) => { $(`tool-${x.id}`).hidden = x.id !== id; });
   els.tools.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-selected', String(TOOLS[i].id === id)));
   if (id === 'products') updateChipArrows();
@@ -1024,7 +976,7 @@ function bindPullTarget(el, getDir) {
 // (trae USFans por encima y se bloquea el scroll) o vertical (scroll normal, nada se mueve).
 function bindDrawerSwipe() {
   const drawer = els.drawer;
-  const ignore = (t) => t.closest('.chips, input, textarea, select, .chat-wrap, .lightbox');
+  const ignore = (t) => t.closest('.chips, input, textarea, select, .lightbox');
   let lock = null; // null = sin decidir, 'x' = deslizar, 'y' = scroll
 
   drawer.addEventListener('touchstart', (e) => {
@@ -1185,273 +1137,6 @@ function setupResizer() {
     const current = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--drawer-w'));
     if (document.documentElement.style.getPropertyValue('--drawer-w')) setDrawerWidth(current, false);
   });
-}
-
-/* ---------- Chat ---------- */
-// Se carga la primera vez que se abre la pestaña, para no ralentizar la entrada a la web
-let chatLoaded = false;
-
-function loadChat() {
-  if (chatLoaded) return;
-  chatLoaded = true;
-  if (CONFIG.chatApi && CONFIG.telegramBotId) return startTgChat();
-  if (!CONFIG.discordServer) {
-    $('chatEmpty').hidden = false;
-    return;
-  }
-  const embed = document.createElement('widgetbot');
-  embed.setAttribute('server', CONFIG.discordServer);
-  if (CONFIG.discordChannel) embed.setAttribute('channel', CONFIG.discordChannel);
-  embed.setAttribute('width', '100%');
-  embed.setAttribute('height', '100%');
-  $('chatWrap').appendChild(embed);
-  const script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/@widgetbot/html-embed';
-  document.body.appendChild(script);
-}
-
-/* ---------- Chat de Telegram ---------- */
-// Entrar con el botón oficial de Telegram → el Worker comprueba que sigues los canales → sesión firmada → WebSocket.
-// Lo que se escribe aquí sale al grupo de Telegram a través del bot, y lo del grupo aparece aquí.
-const tgc = { ws: null, token: null, me: null, auth: null, tries: 0, timer: 0, online: 0, count: 0, pending: new Map(), ref: 0 };
-
-const tgStore = {
-  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } },
-  del(k) { try { localStorage.removeItem(k); } catch (e) { /* sin almacenamiento */ } },
-};
-
-function startTgChat() {
-  $('tgChat').hidden = false;
-  // El script oficial se carga ya para que el botón pueda abrir su ventana al pulsarlo
-  const sc = document.createElement('script');
-  sc.src = 'https://telegram.org/js/telegram-widget.js?22';
-  sc.async = true;
-  document.body.appendChild(sc);
-
-  $('tgLogin').onclick = tgLoginClick;
-  $('tgRecheck').onclick = () => (tgc.auth ? tgSubmitLogin(tgc.auth) : tgShowGate('login'));
-  $('tgLogout').onclick = tgLogout;
-  $('tgForm').addEventListener('submit', (e) => { e.preventDefault(); tgSend(); });
-
-  const token = tgStore.get('tgToken');
-  const me = tgStore.get('tgUser');
-  let exp = 0;
-  try { exp = JSON.parse(atob(token.split('.')[0].replace(/-/g, '+').replace(/_/g, '/'))).exp; } catch (e) { /* sin sesión */ }
-  if (token && me && exp * 1000 > Date.now()) {
-    tgc.token = token;
-    tgc.me = JSON.parse(me);
-    tgShowRoom();
-    tgConnect();
-  } else {
-    tgShowGate('login');
-  }
-}
-
-function tgShowGate(kind, detail) {
-  const gate = $('tgGate');
-  $('tgRoom').hidden = true;
-  gate.hidden = false;
-  const key = { login: 'chatLogin', join: 'chatJoin', banned: 'chatBanned', error: 'chatError' }[kind];
-  $('tgGateTitle').textContent = t(`${key}Title`);
-  $('tgGateText').textContent = kind === 'login' && detail === 'auth' ? t('chatAuthText') : t(`${key}Text`);
-  $('tgLogin').hidden = kind === 'join' || kind === 'banned';
-  $('tgLogin').textContent = kind === 'error' ? t('chatRetry') : t('chatLoginBtn');
-  const folder = $('tgJoin');
-  folder.hidden = kind !== 'join' || !CONFIG.telegramFolderUrl;
-  folder.href = CONFIG.telegramFolderUrl || '#';
-  $('tgRecheck').hidden = kind !== 'join';
-}
-
-function tgShowRoom() {
-  $('tgGate').hidden = true;
-  $('tgRoom').hidden = false;
-  const canWrite = tgc.me?.canWrite !== false;
-  $('tgInput').disabled = !canWrite;
-  $('tgSend').disabled = !canWrite;
-  tgStatus(canWrite ? '' : t('chatMuted'));
-  tgRenderOnline();
-}
-
-function tgLoginClick() {
-  if (!window.Telegram?.Login) return tgShowGate('error');
-  window.Telegram.Login.auth({ bot_id: CONFIG.telegramBotId, request_access: 'write' }, (data) => {
-    if (!data) return; // el usuario cerró la ventana
-    tgSubmitLogin(data);
-  });
-}
-
-async function tgSubmitLogin(data) {
-  tgc.auth = data;
-  $('tgLogin').disabled = true;
-  try {
-    const res = await fetch(`${CONFIG.chatApi}/api/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) });
-    const body = await res.json().catch(() => ({}));
-    if (res.ok) {
-      tgc.token = body.token;
-      tgc.me = body.user;
-      tgStore.set('tgToken', body.token);
-      tgStore.set('tgUser', JSON.stringify(body.user));
-      tgShowRoom();
-      tgConnect();
-    } else if (body.error === 'not_member') {
-      tgShowGate('join');
-    } else if (body.error === 'banned') {
-      tgShowGate('banned');
-    } else if (res.status === 401) {
-      tgShowGate('login', 'auth');
-    } else {
-      tgShowGate('error');
-    }
-  } catch (e) {
-    tgShowGate('error');
-  } finally {
-    $('tgLogin').disabled = false;
-  }
-}
-
-function tgLogout() {
-  clearTimeout(tgc.timer);
-  tgc.tries = 99; // evita que se reconecte solo
-  tgc.ws?.close();
-  tgc.ws = null;
-  tgc.token = tgc.me = tgc.auth = null;
-  tgStore.del('tgToken');
-  tgStore.del('tgUser');
-  $('tgList').replaceChildren();
-  tgShowGate('login');
-}
-
-function tgConnect() {
-  clearTimeout(tgc.timer);
-  tgc.ws?.close();
-  $('tgDot').classList.remove('on');
-  tgStatus(tgc.tries ? t('chatReconnecting') : t('chatConnecting'));
-  const ws = new WebSocket(`${CONFIG.chatApi.replace(/^http/, 'ws')}/ws?t=${encodeURIComponent(tgc.token)}`);
-  tgc.ws = ws;
-  ws.onopen = () => {
-    tgc.tries = 0;
-    $('tgDot').classList.add('on');
-    tgStatus(tgc.me?.canWrite === false ? t('chatMuted') : '');
-  };
-  ws.onmessage = (e) => {
-    let m;
-    try { m = JSON.parse(e.data); } catch (err) { return; }
-    tgHandle(m);
-  };
-  ws.onclose = () => {
-    if (ws !== tgc.ws) return;
-    $('tgDot').classList.remove('on');
-    if (!tgc.token) return;
-    tgc.tries += 1;
-    // Varios fallos seguidos suelen indicar sesión caducada: se vuelve a pedir el login
-    if (tgc.tries > 4) {
-      tgStore.del('tgToken');
-      tgStore.del('tgUser');
-      tgc.token = null;
-      tgShowGate('login');
-      return;
-    }
-    tgStatus(t('chatReconnecting'));
-    tgc.timer = setTimeout(tgConnect, Math.min(1000 * 2 ** tgc.tries, 10000));
-  };
-}
-
-function tgHandle(m) {
-  if (m.type === 'hello') {
-    $('tgList').replaceChildren();
-    tgc.count = 0;
-    m.msgs.forEach((x) => tgAdd(x, false));
-    tgCheckEmpty();
-    tgc.online = m.online;
-    tgRenderOnline();
-    tgScroll(true);
-  } else if (m.type === 'msg') {
-    const stick = tgNearBottom();
-    tgAdd(m.msg, true);
-    tgc.pending.delete(m.ref);
-    if (stick || m.msg.user.id === tgc.me?.id) tgScroll(true);
-  } else if (m.type === 'del') {
-    document.querySelector(`.tg-msg[data-id="${m.id}"]`)?.remove();
-    tgCheckEmpty();
-  } else if (m.type === 'edit') {
-    const el = document.querySelector(`.tg-msg[data-id="${m.id}"] .tg-bubble`);
-    if (el) el.textContent = m.text;
-  } else if (m.type === 'online') {
-    tgc.online = m.n;
-    tgRenderOnline();
-  } else if (m.type === 'error') {
-    const text = tgc.pending.get(m.ref);
-    tgc.pending.delete(m.ref);
-    const key = { links: 'chatErrLinks', slow: 'chatErrSlow', muted: 'chatErrMuted' }[m.code] || 'chatErrSend';
-    tgStatus(t(key));
-    setTimeout(() => tgStatus(tgc.me?.canWrite === false ? t('chatMuted') : ''), 4000);
-    // Se devuelve el texto al cuadro para no perderlo
-    if (text && !$('tgInput').value) $('tgInput').value = text;
-  }
-}
-
-function tgAdd(msg, animate) {
-  const list = $('tgList');
-  list.querySelector('.tg-empty')?.remove();
-  if (list.querySelector(`.tg-msg[data-id="${msg.id}"]`)) return;
-  const mine = msg.user?.id === tgc.me?.id && msg.src === 'web';
-  const el = document.createElement('div');
-  el.className = `tg-msg${mine ? ' mine' : ''}`;
-  el.dataset.id = msg.id;
-  if (!animate) el.style.animation = 'none';
-  const time = new Date(msg.ts).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
-  const meta = document.createElement('div');
-  meta.className = 'tg-meta';
-  const who = document.createElement('b');
-  who.textContent = mine ? '' : (msg.user?.name || '');
-  if (!mine) meta.append(who);
-  if (msg.src === 'tg') {
-    const tag = document.createElement('span');
-    tag.className = 'tg-tag';
-    tag.textContent = t('chatViaTelegram');
-    meta.append(tag);
-  }
-  meta.append(document.createTextNode(`${mine ? '' : ' · '}${time}`));
-  const bubble = document.createElement('div');
-  bubble.className = 'tg-bubble';
-  bubble.textContent = msg.text; // siempre como texto: nunca se interpreta HTML
-  el.append(meta, bubble);
-  list.append(el);
-  tgc.count += 1;
-}
-
-function tgCheckEmpty() {
-  const list = $('tgList');
-  if (!list.querySelector('.tg-msg') && !list.querySelector('.tg-empty')) {
-    const e = document.createElement('p');
-    e.className = 'tg-empty';
-    e.textContent = t('chatEmpty');
-    list.append(e);
-  }
-}
-
-function tgSend() {
-  const input = $('tgInput');
-  const text = input.value.trim();
-  if (!text || tgc.ws?.readyState !== WebSocket.OPEN) return;
-  const ref = ++tgc.ref;
-  tgc.pending.set(ref, text);
-  tgc.ws.send(JSON.stringify({ type: 'msg', text, ref }));
-  input.value = '';
-}
-
-const tgNearBottom = () => { const l = $('tgList'); return l.scrollHeight - l.scrollTop - l.clientHeight < 80; };
-function tgScroll(force) { const l = $('tgList'); if (force) requestAnimationFrame(() => { l.scrollTop = l.scrollHeight; }); }
-function tgStatus(text) { const s = $('tgStatus'); s.textContent = text || ''; s.hidden = !text; }
-function tgRenderOnline() { $('tgOnline').textContent = tgc.online ? t('chatOnline', { n: tgc.online }) : ''; }
-
-// Al cambiar de idioma se refrescan los textos que se escriben desde aquí
-function tgRefreshTexts() {
-  if (!$('tgChat') || $('tgChat').hidden) return;
-  tgRenderOnline();
-  if (!$('tgGate').hidden) tgShowGate(!$('tgJoin').hidden || !$('tgRecheck').hidden ? 'join' : $('tgLogin').hidden ? 'banned' : 'login');
-  if (!$('tgRoom').hidden) tgCheckEmpty();
 }
 
 /* ---------- Fotos QC (FinderQC) ---------- */
@@ -1650,7 +1335,6 @@ function setLanguage(next) {
   refreshThemeLabel();
   renderTools();
   rerenderQc();
-  tgRefreshTexts();
   renderTabs();
   tabs.forEach((tab) => { tab.iframe.title = tabTitle(tab); });
   hideMenu();
@@ -1675,7 +1359,7 @@ async function init() {
   setupTheme();
   setupChipScroll();
 
-  createTab(CONFIG.homeUrl, HOME_TITLE);
+  if (!restoreTabs()) createTab(CONFIG.homeUrl, HOME_TITLE);
   if (isMobile()) settleSlide(false, false); // en móvil se empieza en USFans, sin animación
   startCoach();
 
