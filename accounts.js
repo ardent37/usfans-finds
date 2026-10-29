@@ -357,6 +357,7 @@ const Accounts = (() => {
     $('accountBtn').classList.toggle('on', !!me);
     renderSource();
     renderChips();
+    window.Hauls?.onSession();
   }
 
   async function refreshMe() {
@@ -719,6 +720,10 @@ const Accounts = (() => {
     if (token) refreshMe();
   }
 
-  return { start, watch, tabNames };
+  return {
+    start, watch, tabNames,
+    api: call, isLoggedIn: () => !!me, login: (after) => loginModal(after),
+    ui: { el, openModal, closeModal, heading, closeBtn, errBox, showErr },
+  };
 })();
 window.Accounts = Accounts;

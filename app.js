@@ -718,7 +718,10 @@ function renderTabs() {
 }
 
 /* ---------- Menú contextual propio ---------- */
+let menuPos = { x: 0, y: 0 };
+
 function showMenu(x, y, heading, items) {
+  menuPos = { x, y };
   const m = els.menu;
   m.replaceChildren();
   if (heading) {
@@ -759,6 +762,7 @@ function productMenu(p) {
     { icon: '↗', label: t('openInBrowser'), action: () => window.open(url, '_blank', 'noopener') },
     { icon: '⎘', label: t('copyLink'), action: () => navigator.clipboard?.writeText(url) },
     '-',
+    ...(CONFIG.accountApi ? [{ icon: '＋', label: t('addToHaul'), action: () => window.Hauls?.addMenu(p) }] : []),
     { icon: '◎', label: t('viewQc'), action: () => searchQc(p.link) },
   ];
 }
@@ -802,19 +806,24 @@ function onProductClick(e) {
 /* ---------- Panel lateral y pestañas de herramientas ---------- */
 // Para añadir una herramienta: añade un <section class="tool" id="tool-xxx"> en index.html y una entrada aquí.
 const TOOL_ICONS = {
+  hauls: '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M3.5 8.2A2.2 2.2 0 0 1 5.7 6h3.2c.5 0 1 .2 1.3.6l.8 1c.3.4.8.6 1.3.6h5.9a2.2 2.2 0 0 1 2.2 2.2v6.4a2.2 2.2 0 0 1-2.2 2.2H5.7a2.2 2.2 0 0 1-2.2-2.2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
   products: '<svg viewBox="0 0 24 24" width="22" height="22"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 3.5v17" stroke="currentColor" stroke-width="1.6"/></svg>',
   qc: '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M8.5 6l1.2-1.8c.2-.4.6-.7 1.1-.7h2.4c.5 0 .9.3 1.1.7L15.5 6H18a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 19H6a2.5 2.5 0 0 1-2.5-2.5v-8A2.5 2.5 0 0 1 6 6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
 };
 const TOOLS = [
   { id: 'products', labelKey: 'spreadsheet' },
+  { id: 'hauls', labelKey: 'toolHauls' },
   { id: 'qc', labelKey: 'toolQc' },
 ];
 let activeTool = 'products';
 
+// "Mis hauls" solo existe cuando hay cuentas (API configurada)
+const visibleTools = () => TOOLS.filter((x) => x.id !== 'hauls' || CONFIG.accountApi);
+
 function renderTools() {
-  els.tools.hidden = TOOLS.length < 2;
+  els.tools.hidden = visibleTools().length < 2;
   els.tools.replaceChildren();
-  for (const t of TOOLS) {
+  for (const t of visibleTools()) {
     const b = document.createElement('button');
     b.role = 'tab';
     b.innerHTML = `${TOOL_ICONS[t.id] || ''}<span></span>`;
@@ -828,8 +837,9 @@ function renderTools() {
 function showTool(id) {
   activeTool = id;
   TOOLS.forEach((x) => { $(`tool-${x.id}`).hidden = x.id !== id; });
-  els.tools.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-selected', String(TOOLS[i].id === id)));
+  els.tools.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-selected', String(visibleTools()[i].id === id)));
   if (id === 'products') updateChipArrows();
+  if (id === 'hauls') window.Hauls?.show();
 }
 
 function renderSkeleton(n = 8) {
