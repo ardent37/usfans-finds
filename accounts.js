@@ -492,33 +492,89 @@ const Accounts = (() => {
     });
   }
 
-  async function scanTabs(url, tabs) {
-    const found = new Map();
-    const csvOk = [];
-    let blocked = false;
-    for (const tab of tabs) {
-      try {
-        const csv = await call(`/sheet/csv?url=${encodeURIComponent(url)}&gid=${tab.gid}`, { text: true });
-        for (const row of Papa.parse(csv, { skipEmptyLines: true }).data) collect(row, found, tab.name);
-        csvOk.push(tab);
-      } catch (ex) {
-        if (ex.code !== 'private') throw ex;
-        // El propietario ha desactivado la descarga: se lee la tabla de la vista web de la hoja
-        try {
-          const { rows } = await call(`/sheet/rows?url=${encodeURIComponent(url)}&gid=${tab.gid}`);
-          for (const row of rows) collect(row, found, tab.name);
-        } catch (ex2) {
-          if (ex2.code !== 'private') throw ex2;
-          blocked = true;
+  const sheetGet = (url, kind, gid) => call(`/sheet?kind=${kind}&url=${encodeURIComponent(url)}${gid ? `&gid=${gid}` : ''}`, { text: true });
+
+  const unescapeJs = (v) => v.replace(/\\x([0-9a-f]{2})/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/\\u([0-9a-f]{4})/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/\\(.)/g, '$1');
+
+  // Nombre de la hoja y de sus pestañas, a partir de la página de Google
+  async function getTabs(url) {
+    const html = await sheetGet(url, 'tabs');
+    const tabs = [];
+    let m;
+    const re1 = /items\.push\(\{name:\s*"((?:[^"\\]|\\.)*)"[^}]*?gid:\s*"(-?\d+)"/g;
+    while ((m = re1.exec(html))) tabs.push({ gid: m[2], name: unescapeJs(m[1]).trim() || `Hoja ${m[2]}` });
+    if (!tabs.length) {
+      const re2 = /id="sheet-button-(\d+)"[^>]*>\s*<a[^>]*>([^<]*)<\/a>/g;
+      while ((m = re2.exec(html))) tabs.push({ gid: m[1], name: new DOMParser().parseFromString(m[2], 'text/html').body.textContent.trim() || `Hoja ${m[1]}` });
+    }
+    if (!tabs.length) tabs.push({ gid: (url.match(/gid=(\d+)/) || [])[1] || '0', name: 'Hoja 1' });
+    const rawTitle = (html.match(/<title>([^<]*)<\/title>/i) || [])[1] || '';
+    const title = new DOMParser().parseFromString(rawTitle, 'text/html').body.textContent.replace(/ - Google (Sheets|Hojas de cálculo|Drive)$/i, '').trim();
+    return { title, tabs };
+  }
+
+  // Filas de la vista web de una pestaña: texto de cada celda + sus hipervínculos; las celdas combinadas se repiten
+  function htmlRows(html, gid, pub) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const scope = (pub && doc.getElementById(gid)) || doc;
+    const rows = [];
+    const carry = [];
+    const realLink = (href) => {
+      const g = href.match(/^https?:\/\/(?:www\.)?google\.com\/url\?(?:[^#]*&)?q=([^&]+)/);
+      if (g) { try { return decodeURIComponent(g[1]); } catch { return ''; } }
+      return /^https?:\/\//.test(href) && !/google\.com|gstatic\.com/.test(href) ? href : '';
+    };
+    scope.querySelectorAll('table tr').forEach((tr) => {
+      if (tr.closest('thead')) return;
+      const row = [];
+      let col = 0;
+      const fill = () => { while (carry[col] && carry[col].left > 0) { row[col] = carry[col].text; carry[col].left--; col++; } };
+      for (const td of tr.children) {
+        if (td.tagName !== 'TD') continue;
+        fill();
+        const colspan = Math.min(Number(td.getAttribute('colspan')) || 1, 50);
+        const rowspan = Math.min(Number(td.getAttribute('rowspan')) || 1, 200);
+        const text = td.textContent.replace(/\s+/g, ' ').trim();
+        const links = [...td.querySelectorAll('a[href]')].map((a) => realLink(a.getAttribute('href'))).filter((u) => u && !text.includes(u));
+        const cell = [text, ...new Set(links)].filter(Boolean).join(' ');
+        for (let k = 0; k < colspan; k++) {
+          row[col] = k === 0 ? cell : '';
+          if (rowspan > 1) carry[col] = { left: rowspan - 1, text: k === 0 ? cell : '' };
+          col++;
         }
       }
-    }
-    // Enlaces escondidos en el texto de las celdas: el CSV no los trae, la vista web de la hoja sí
-    if (csvOk.length) {
+      fill();
+      if (row.some(Boolean)) rows.push(Array.from(row, (c) => c || ''));
+    });
+    return rows;
+  }
+
+  async function scanTabs(url, tabs) {
+    const found = new Map();
+    const pub = /\/spreadsheets\/d\/e\//.test(url);
+    let pubHtml = null;
+    let blocked = 0;
+    for (const tab of tabs) {
+      let any = false;
+      // 1) CSV: lo más rápido (si el propietario no ha bloqueado la descarga)
       try {
-        const { groups } = await call(`/sheet/links?url=${encodeURIComponent(url)}&gids=${csvOk.map((x) => x.gid).join(',')}`);
-        for (const tab of csvOk) for (const u of groups[tab.gid] || []) collect([u], found, tab.name);
-      } catch { /* si falla, se sigue con lo que trae el CSV */ }
+        const csv = await sheetGet(url, 'csv', tab.gid);
+        for (const row of Papa.parse(csv, { skipEmptyLines: true }).data) collect(row, found, tab.name);
+        any = true;
+      } catch (ex) {
+        if (ex.code !== 'private') throw ex;
+      }
+      // 2) Vista web de la hoja: trae también los enlaces escondidos tras un texto y los nombres con enlace
+      try {
+        const html = pub ? (pubHtml ||= await sheetGet(url, 'rows', tab.gid)) : await sheetGet(url, 'rows', tab.gid);
+        for (const row of htmlRows(html, tab.gid, pub)) collect(row, found, tab.name);
+        any = true;
+      } catch (ex) {
+        if (ex.code !== 'private') throw ex;
+      }
+      if (!any) blocked++;
     }
     if (!found.size && blocked) throw Object.assign(new Error('blocked'), { code: 'blocked' });
     return found;
@@ -535,7 +591,7 @@ const Accounts = (() => {
       showErr(err, '');
       go.disabled = true;
       try {
-        const info = await call(`/sheet/tabs?url=${encodeURIComponent(input.value.trim())}`);
+        const info = await getTabs(input.value.trim());
         if (info.tabs.length > 1) tabsStep(input.value.trim(), info);
         else scanStep(input.value.trim(), info, info.tabs);
       } catch (ex) {
@@ -602,7 +658,7 @@ const Accounts = (() => {
       const { id } = await call('/imports', { method: 'POST', body: { name, source: url, total: items.length, tabs: tabNames } });
       // Sin consultar a USFans: se guarda el enlace y el nombre de la hoja; la foto y el precio se piden al verlos
       const list = items.map((x) => ({ n: x.name, l: `https://usfans.com/product/${x.p}/${x.id}`, t: [...x.tabs] }));
-      await call(`/imports/${id}/catalog?done=1`, { method: 'PUT', body: JSON.stringify(list) });
+      await call(`/imports/${id}/catalog?done=1&count=${list.length}`, { method: 'PUT', body: JSON.stringify(list) });
     } catch (ex) {
       busy = false;
       importModal();
