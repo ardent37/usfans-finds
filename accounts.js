@@ -673,6 +673,77 @@ const Accounts = (() => {
 
   /* ---------- Fotos y precios a demanda ---------- */
   // Solo se piden los productos que aparecen en pantalla, pocos a la vez y con pausas; el servidor guarda en caché lo que ya conoce
+  // Cada navegador consulta la API pública de USFans por su cuenta (USFans permite esta web), con pocas peticiones, pausas y una caché
+  // de 24 h en este navegador. Los servidores de Cloudflare no sirven: USFans les responde con un control antirrobots.
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const GOODS_API = 'https://usfans.com/api/goods/info';
+  const GOODS_TTL = 24 * 3600 * 1000;
+  const GOODS_KEY = 'goodsCache';
+  const GOODS_MAX_PER_VISIT = 400;
+  let goodsMem = null;
+  let goodsTimer = 0;
+  let goodsCount = 0;
+
+  function goodsLoad() {
+    if (goodsMem) return goodsMem;
+    try { goodsMem = new Map(JSON.parse(localStorage.getItem(GOODS_KEY) || '[]')); } catch { goodsMem = new Map(); }
+    return goodsMem;
+  }
+
+  function goodsSave() {
+    clearTimeout(goodsTimer);
+    goodsTimer = setTimeout(() => {
+      try {
+        const rows = [...goodsLoad()].sort((a, b) => b[1].ts - a[1].ts).slice(0, 4000); // los más recientes
+        localStorage.setItem(GOODS_KEY, JSON.stringify(rows));
+      } catch { /* sin almacenamiento */ }
+    }, 1500);
+  }
+
+  async function fetchGoodsDirect(platform, id) {
+    try {
+      const r = await fetch(`${GOODS_API}?channel=${platform}&goodsId=${encodeURIComponent(id)}&refresh=false&queryDelivery=false&activityId=`, { headers: { currency: 'EUR' } });
+      if (!r.ok) return { status: 'limited' };
+      const j = await r.json();
+      // Cualquier código distinto de 200 (p. ej. el control antirrobots) no significa que el producto no exista
+      if (!j || j.code !== 200) return { status: 'limited' };
+      const d = j.data;
+      if (!d) return { status: 'empty' };
+      const prices = (d.skuList || []).filter((x) => Number(x.stock) > 0)
+        .map((x) => Number(x.convertedDiscountPrice || x.convertedPrice)).filter((x) => x > 0);
+      if (!prices.length && Number(d.convertedPrice) > 0 && Number(d.stock) > 0) prices.push(Number(d.convertedPrice));
+      if (!prices.length) return { status: 'gone' }; // existe pero sin stock
+      return {
+        status: 'ok',
+        n: String(d.titleEn || d.title || '').trim(),
+        i: Array.isArray(d.images) && d.images[0] ? String(d.images[0]) : '',
+        p: `${Math.min(...prices).toFixed(2).replace('.', ',')} €`,
+      };
+    } catch {
+      return { status: 'error' };
+    }
+  }
+
+  // Devuelve, para cada producto, su estado (de la caché o consultando a USFans con una pausa entre peticiones)
+  async function resolveDirect(list) {
+    const cache = goodsLoad();
+    const items = [];
+    let limited = false;
+    for (const r of list) {
+      const k = `${r.platform}/${r.id}`;
+      const hit = cache.get(k);
+      if (hit && Date.now() - hit.ts < GOODS_TTL) { items.push({ k, ...hit.v }); continue; }
+      if (limited || goodsCount >= GOODS_MAX_PER_VISIT) { items.push({ k, status: 'pending' }); continue; }
+      goodsCount++;
+      const v = await fetchGoodsDirect(r.platform, r.id);
+      if (v.status === 'limited') limited = true;
+      if (v.status === 'ok' || v.status === 'gone') { cache.set(k, { ts: Date.now(), v }); goodsSave(); }
+      items.push({ k, ...v, status: v.status === 'limited' || v.status === 'error' ? 'pending' : v.status });
+      await sleep(600);
+    }
+    return { items, limited, capped: goodsCount >= GOODS_MAX_PER_VISIT };
+  }
+
   const watching = new Map(); // tarjeta → producto
   const lazy = { queue: new Set(), timer: 0, backoff: 0, tries: new Map() };
   const seenIo = new IntersectionObserver((entries) => {
@@ -695,16 +766,17 @@ const Accounts = (() => {
     lazy.timer = setTimeout(async () => {
       lazy.timer = 0;
       lazy.queue.forEach((c) => { if (!c.isConnected) { lazy.queue.delete(c); watching.delete(c); } });
-      const cards = [...lazy.queue].slice(0, 4);
+      const cards = [...lazy.queue].slice(0, 3);
       if (!cards.length || !me) return;
       const batch = cards.map((c) => ({ c, p: watching.get(c), r: parseProductLink(watching.get(c).link) })).filter((x) => x.r);
       let res;
       try {
-        res = await call('/resolve', { method: 'POST', body: { items: batch.map((x) => ({ p: x.r.platform, id: x.r.id })) } });
+        res = await resolveDirect(batch.map((x) => x.r));
       } catch {
         lazy.backoff = Math.min((lazy.backoff || 4000) * 2, 60000);
         return pump(lazy.backoff);
       }
+      if (res.capped && !res.items.some((g) => g.status === 'ok')) return; // tope de consultas por visita alcanzado
       lazy.backoff = res.limited ? Math.min((lazy.backoff || 4000) * 2, 60000) : 0;
       res.items.forEach((g, i) => {
         const { c, p, r } = batch[i];
@@ -728,7 +800,7 @@ const Accounts = (() => {
         }
         if (p.done) { lazy.queue.delete(c); watching.delete(c); seenIo.unobserve(c); }
       });
-      pump(lazy.backoff || 1500);
+      pump(lazy.backoff || 1000);
     }, delay);
   }
 
