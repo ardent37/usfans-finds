@@ -48,8 +48,10 @@ Object.assign(I18N.es, {
   importScanning: 'Buscando productos…',
   importName: 'Nombre de la hoja',
   importFound: 'Hemos encontrado {n} productos.',
-  importColor: 'Color de la hoja',
-  allTabs: 'Todas',
+  verifiedProducts: 'Productos verificados',
+  sourceAll: 'Usar todas mis spreadsheets',
+  sourceAllShort: 'Todas mis spreadsheets',
+  confirmAgain: 'Pulsa otra vez para confirmar',
   importedProduct: 'Producto',
   importSaving: 'Guardando…',
   importFoundSkipped: '{n} enlaces no son compatibles y se omitirán.',
@@ -115,8 +117,10 @@ Object.assign(I18N.en, {
   importScanning: 'Looking for products…',
   importName: 'Sheet name',
   importFound: 'We found {n} products.',
-  importColor: 'Sheet colour',
-  allTabs: 'All',
+  verifiedProducts: 'Verified products',
+  sourceAll: 'Use all my spreadsheets',
+  sourceAllShort: 'All my spreadsheets',
+  confirmAgain: 'Tap again to confirm',
   importedProduct: 'Product',
   importSaving: 'Saving…',
   importFoundSkipped: '{n} links aren’t supported and will be skipped.',
@@ -168,6 +172,25 @@ const Accounts = (() => {
   }
 
   /* ---------- Utilidades de interfaz ---------- */
+  // Botón que pide una segunda pulsación para confirmar (sustituye a confirm(), que algunos navegadores bloquean)
+  function twice(label, action, cls = 'btn ghost') {
+    let armed = false;
+    let timer = 0;
+    const b = el('button', { class: cls, type: 'button', text: label });
+    b.onclick = () => {
+      if (!armed) {
+        armed = true;
+        b.textContent = t('confirmAgain');
+        b.classList.add('danger');
+        timer = setTimeout(() => { armed = false; b.textContent = label; b.classList.remove('danger'); }, 4000);
+        return;
+      }
+      clearTimeout(timer);
+      action();
+    };
+    return b;
+  }
+
   function el(tag, props = {}, ...kids) {
     const n = document.createElement(tag);
     for (const [k, v] of Object.entries(props)) {
@@ -191,7 +214,7 @@ const Accounts = (() => {
   }
 
   function closeModal() {
-    if (busy && !confirm(t('importCancel') + '?')) return;
+    if (busy) return;
     modal().hidden = true;
     document.body.classList.remove('modal-open');
     $('modalCard').replaceChildren();
@@ -275,42 +298,65 @@ const Accounts = (() => {
   }
 
   /* ---------- Sesión y catálogo ---------- */
-  function paintAccount() {
-    $('accountBtn').classList.toggle('on', !!me);
-    renderSheets();
+  /* ---------- Selector de origen de los productos ---------- */
+  const VERIFIED = '<svg class="verified" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="4.6" y="4.6" width="14.8" height="14.8" rx="3.2" fill="#0095f6"/><rect x="4.6" y="4.6" width="14.8" height="14.8" rx="3.2" fill="#0095f6" transform="rotate(45 12 12)"/><path d="m8.4 12.3 2.5 2.5 4.8-5" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const CHEV = '<svg class="chev" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const STACK = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 4 3.5 8.5 12 13l8.5-4.5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m3.5 12.5 8.5 4.5 8.5-4.5M3.5 16.5 12 21l8.5-4.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+  const TICK = '<svg class="tick" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  const sheets = () => (me ? me.imports.filter((i) => i.resolved) : []);
+
+  // Pestañas de la hoja elegida (o de todas): son las "categorías" cuando se ven productos importados
+  function tabNames(source) {
+    const list = source === 'all' ? sheets() : sheets().filter((i) => i.id === source);
+    const names = new Set();
+    for (const imp of list) if ((imp.tabs || []).length > 1) imp.tabs.forEach((x) => names.add(x));
+    return [...names];
   }
 
-  // Filas bajo las categorías: una con las hojas importadas (cada una de su color) y otra con las pestañas de la hoja elegida
-  function renderSheets() {
-    const row = $('sheetChips');
-    const trow = $('tabChips');
-    row.replaceChildren();
-    trow.replaceChildren();
-    const imps = me ? me.imports.filter((i) => i.resolved) : [];
-    row.hidden = !imps.length;
-    trow.hidden = true;
-    if (!imps.length) { state.sheet = ''; state.tab = ''; return; }
-    for (const imp of imps) {
-      const b = el('button', { class: 'chip sheet', type: 'button', text: imp.name, 'aria-pressed': String(state.sheet === imp.id) });
-      b.style.setProperty('--c', imp.color || '#0a84ff');
-      b.onclick = () => {
-        state.sheet = state.sheet === imp.id ? '' : imp.id;
-        state.tab = '';
-        renderSheets();
-        applyFilters();
-      };
-      row.append(b);
-    }
-    const sel = imps.find((i) => i.id === state.sheet);
-    if (sel && (sel.tabs || []).length > 1) {
-      trow.hidden = false;
-      for (const name of ['', ...sel.tabs]) {
-        const b = el('button', { class: 'chip sheet-tab', type: 'button', text: name || t('allTabs'), 'aria-pressed': String(state.tab === name) });
-        b.style.setProperty('--c', sel.color || '#0a84ff');
-        b.onclick = () => { state.tab = name; renderSheets(); applyFilters(); };
-        trow.append(b);
-      }
-    }
+  function pickSource(value) {
+    $('sourceMenu').hidden = true;
+    $('sourceBtn').setAttribute('aria-expanded', 'false');
+    if (state.source === value) return;
+    state.source = value;
+    state.category = '';
+    state.tab = '';
+    renderSource();
+    renderChips();
+    applyFilters();
+  }
+
+  function renderSource() {
+    const btn = $('sourceBtn');
+    const menu = $('sourceMenu');
+    const list = sheets();
+    if (state.source !== 'orig' && state.source !== 'all' && !list.some((i) => i.id === state.source)) state.source = 'orig';
+    if (state.source === 'all' && !list.length) state.source = 'orig';
+    const cur = list.find((i) => i.id === state.source);
+    const label = state.source === 'orig' ? t('verifiedProducts') : state.source === 'all' ? t('sourceAllShort') : cur.name;
+    btn.innerHTML = `${state.source === 'orig' ? VERIFIED : STACK}<span class="lbl"></span>${CHEV}`;
+    btn.querySelector('.lbl').textContent = label;
+    btn.classList.toggle('single', !list.length);
+    btn.disabled = !list.length;
+    const opt = (value, text, icon) => {
+      const o = el('button', { class: 'source-opt', type: 'button', role: 'option', 'aria-selected': String(state.source === value), onclick: () => pickSource(value) });
+      o.innerHTML = `${icon}<span class="lbl"></span>${TICK}`;
+      o.querySelector('.lbl').textContent = text;
+      return o;
+    };
+    menu.replaceChildren(
+      opt('orig', t('verifiedProducts'), VERIFIED),
+      ...list.map((i) => opt(i.id, i.name, STACK)),
+      list.length ? el('div', { class: 'source-sep' }) : null,
+      list.length ? opt('all', t('sourceAll'), STACK) : null,
+    );
+    menu.querySelectorAll('.source-sep').forEach((x) => x.setAttribute('role', 'separator'));
+  }
+
+  function paintAccount() {
+    $('accountBtn').classList.toggle('on', !!me);
+    renderSource();
+    renderChips();
   }
 
   async function refreshMe() {
@@ -362,7 +408,8 @@ const Accounts = (() => {
     token = null;
     me = null;
     store.set(null);
-    state.sheet = '';
+    state.source = 'orig';
+    state.category = '';
     state.tab = '';
     setImported([]);
     paintAccount();
@@ -383,12 +430,8 @@ const Accounts = (() => {
     for (const imp of me.imports) {
       list.append(el('li', {},
         el('span', { class: 'acc-name' }, el('b', { text: imp.name }), el('small', { text: t('accProducts', { n: (imp.resolved || 0).toLocaleString(locale()) }) })),
-        el('button', {
-          class: 'btn ghost', type: 'button', text: t('accDeleteImport'),
-          onclick: async () => {
-            if (!confirm(t('accDeleteImportConfirm'))) return;
-            try { await call(`/imports/${imp.id}`, { method: 'DELETE' }); await refreshMe(); accountModal(); } catch { showErr(err, t('errGeneric')); }
-          },
+        twice(t('accDeleteImport'), async () => {
+          try { await call(`/imports/${imp.id}`, { method: 'DELETE' }); await refreshMe(); accountModal(); } catch { showErr(err, t('errGeneric')); }
         })));
     }
     openModal(
@@ -398,12 +441,8 @@ const Accounts = (() => {
       el('h3', { class: 'modal-h3', text: t('accImports') }), list, err,
       el('div', { class: 'modal-row spread' },
         el('button', { class: 'btn ghost', type: 'button', text: t('accSignOut'), onclick: signOut }),
-        el('button', {
-          class: 'btn ghost danger', type: 'button', text: t('accDelete'),
-          onclick: async () => {
-            if (!confirm(t('accDeleteConfirm'))) return;
-            try { await call('/me', { method: 'DELETE' }); signOut(); } catch { showErr(err, t('errGeneric')); }
-          },
+        twice(t('accDelete'), async () => {
+          try { await call('/me', { method: 'DELETE' }); signOut(); } catch { showErr(err, t('errGeneric')); }
         })));
   }
 
@@ -414,7 +453,6 @@ const Accounts = (() => {
   }[e.code] || t('errGeneric'));
 
   const URL_RE = /https?:\/\/[^\s"'<>]+/g;
-  const SHEET_COLORS = ['#0a84ff', '#30b050', '#af52de', '#ff2d55', '#ff9f0a', '#00b5b0', '#5e5ce6', '#8e8e93'];
 
   // Nombre del producto: el texto descriptivo más cercano al enlace dentro de su fila.
   // A igual distancia se prefiere el de la izquierda: es lo más probable que sea el nombre de ese producto.
@@ -546,31 +584,21 @@ const Accounts = (() => {
     const name = el('input', { type: 'text', maxlength: '80', 'aria-label': t('importName') });
     name.value = (info.title || 'Spreadsheet').slice(0, 80);
     const start = el('button', { class: 'btn modal-btn', type: 'button', text: t('importStart') });
-    const usedColors = new Set((me?.imports || []).map((i) => i.color));
-    let color = SHEET_COLORS.find((c) => !usedColors.has(c)) || SHEET_COLORS[0];
-    const swatches = el('div', { class: 'swatches' });
-    const paintSwatches = () => swatches.querySelectorAll('.swatch').forEach((s) => s.setAttribute('aria-pressed', String(s.dataset.c === color)));
-    for (const c of SHEET_COLORS) {
-      const s = el('button', { class: 'swatch', type: 'button', 'data-c': c, 'aria-label': c, onclick: () => { color = c; paintSwatches(); } });
-      s.style.setProperty('--c', c);
-      swatches.append(s);
-    }
-    paintSwatches();
-    start.onclick = () => runImport(url, name.value.trim() || 'Spreadsheet', todo, color, tabs.map((x) => x.name));
+    start.onclick = () => runImport(url, name.value.trim() || 'Spreadsheet', todo, tabs.map((x) => x.name));
     openModal(closeBtn(), ...heading(t('importFound', { n: todo.length.toLocaleString(locale()) })),
       el('div', { class: 'modal-form' },
         skipped ? el('p', { class: 'modal-note', text: t('importFoundSkipped', { n: skipped }) }) : null,
         dup ? el('p', { class: 'modal-note', text: t('importFoundKnown', { n: dup }) }) : null,
         el('label', { class: 'modal-label', text: t('importName') }), el('div', { class: 'field' }, name),
-        el('label', { class: 'modal-label', text: t('importColor') }), swatches, start));
+        start));
   }
 
-  async function runImport(url, name, items, color, tabNames) {
+  async function runImport(url, name, items, tabNames) {
     const err = errBox();
     openModal(...heading(t('importSaving')), el('div', { class: 'modal-spin' }, el('span', { class: 'spinner' })), err);
     busy = true;
     try {
-      const { id } = await call('/imports', { method: 'POST', body: { name, source: url, total: items.length, color, tabs: tabNames } });
+      const { id } = await call('/imports', { method: 'POST', body: { name, source: url, total: items.length, tabs: tabNames } });
       // Sin consultar a USFans: se guarda el enlace y el nombre de la hoja; la foto y el precio se piden al verlos
       const list = items.map((x) => ({ n: x.name, l: `https://usfans.com/product/${x.p}/${x.id}`, t: [...x.tabs] }));
       await call(`/imports/${id}/catalog?done=1`, { method: 'PUT', body: JSON.stringify(list) });
@@ -672,7 +700,17 @@ const Accounts = (() => {
   function start() {
     if (!API) return;
     $('accountBtn').hidden = false;
-    $('importBtn').hidden = false;
+    $('sourceBar').hidden = false;
+    renderSource();
+    $('sourceBtn').onclick = (e) => {
+      e.stopPropagation();
+      const open = $('sourceMenu').hidden;
+      $('sourceMenu').hidden = !open;
+      $('sourceBtn').setAttribute('aria-expanded', String(open));
+    };
+    document.addEventListener('pointerdown', (e) => {
+      if (!$('sourceSelect').contains(e.target)) { $('sourceMenu').hidden = true; $('sourceBtn').setAttribute('aria-expanded', 'false'); }
+    });
     $('accountBtn').onclick = () => (me ? accountModal() : loginModal());
     $('importBtn').onclick = () => (me ? importModal() : loginModal(importModal));
     modal().addEventListener('pointerdown', (e) => { if (e.target === modal()) closeModal(); });
@@ -681,6 +719,6 @@ const Accounts = (() => {
     if (token) refreshMe();
   }
 
-  return { start, watch };
+  return { start, watch, tabNames };
 })();
 window.Accounts = Accounts;

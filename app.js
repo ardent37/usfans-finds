@@ -229,7 +229,7 @@ const els = {
 const state = {
   all: [], filtered: [], shown: 0,
   query: '', category: '', sort: 'default', activeId: null,
-  orig: [], imp: [], sheet: '', tab: '',   // productos de la hoja original, importados, y hoja/pestaña importada elegida como filtro
+  orig: [], imp: [], source: 'orig', tab: '',   // hoja original, importados, de dónde se ven los productos ('orig', 'all' o el id de una hoja importada) y pestaña elegida
 };
 
 const isMobile = () => window.matchMedia('(max-width: 820px)').matches;
@@ -368,12 +368,20 @@ function sampleProducts() {
 }
 
 /* ---------- Filtrado y pintado ---------- */
+// Qué productos se ven: solo los de mi hoja (verificados), los de una hoja importada o todos (los de mi hoja primero)
+const inSource = (p) => (state.source === 'orig' ? !p.src : state.source === 'all' ? true : !!p.imps?.[state.source]);
+const tabMatch = (p) => (state.source === 'all'
+  ? Object.values(p.imps || {}).some((a) => a.includes(state.tab))
+  : (p.imps?.[state.source] || []).includes(state.tab));
+
 function applyFilters() {
   const tokens = norm(state.query).split(/\s+/).filter(Boolean);
-  let list = state.all.filter((p) =>
+  const scope = state.all.filter(inSource);
+  state.scopeTotal = scope.length;
+  let list = scope.filter((p) =>
     !p.gone &&
-    (!state.sheet || p.imps?.[state.sheet]) &&
-    (!state.tab || p.imps?.[state.sheet]?.includes(state.tab)) &&
+    inSource(p) &&
+    (!state.tab || tabMatch(p)) &&
     (!state.category || p.categories.includes(state.category)) &&
     tokens.every((t) => p._n.includes(t)));
 
@@ -383,7 +391,7 @@ function applyFilters() {
   else if (state.sort === 'name') list = list.slice().sort((a, b) => a.name.localeCompare(b.name, lang));
 
   // La hoja original siempre va primero; los productos importados, después
-  if (state.imp.length) list = [...list.filter((p) => !p.src), ...list.filter((p) => p.src)];
+  if (state.source === 'all') list = [...list.filter((p) => !p.src), ...list.filter((p) => p.src)];
 
   state.filtered = list;
   state.shown = 0;
@@ -413,13 +421,14 @@ function setImported(list) {
   const extra = list.filter((p) => !seen.has(productKeyOf(p.link)));
   extra.forEach((p, i) => { p.id = state.orig.length + i; p.src = 1; });
   state.all = state.orig.concat(extra);
-  if (state.sheet && !list.some((p) => p.imps?.[state.sheet])) { state.sheet = ''; state.tab = ''; }
+  const gone = state.source === 'all' ? !list.length : state.source !== 'orig' && !list.some((p) => p.imps?.[state.source]);
+  if (gone) { state.source = 'orig'; state.category = ''; state.tab = ''; }
   if (state.all.length) { renderChips(); applyFilters(); }
 }
 
 function renderCount() {
   const n = state.filtered.length;
-  const total = state.all.length;
+  const total = state.scopeTotal ?? state.all.length;
   const fmt = (x) => x.toLocaleString(locale());
   els.count.textContent = (n === total ? t('count', { n: fmt(n) }) : t('countOf', { n: fmt(n), total: fmt(total) }))
     + (CONFIG.dataUrl ? '' : t('sample'));
@@ -475,26 +484,36 @@ function renderMore() {
 }
 
 function renderChips() {
-  // Orden: el de CONFIG.categoryLabels (Tendencias, Novedades…) y después el resto por número de productos
+  // Categorías de la hoja original: orden de CONFIG.categoryLabels (Tendencias, Novedades…) y después por número de productos
   const counts = new Map();
-  state.all.forEach((p) => p.categories.forEach((c) => counts.set(c, (counts.get(c) || 0) + 1)));
+  state.orig.forEach((p) => p.categories.forEach((c) => counts.set(c, (counts.get(c) || 0) + 1)));
   const order = CONFIG.categoryLabels.map(([from]) => from);
   const rank = (c) => (order.includes(c) ? order.indexOf(c) : order.length);
   const cats = [...counts.keys()].sort((a, b) => rank(a) - rank(b) || counts.get(b) - counts.get(a));
+  // Pestañas de las hojas importadas (solo cuando se ve alguna hoja importada)
+  const tabs = state.source === 'orig' ? [] : (window.Accounts?.tabNames(state.source) || []);
+  const entries = [
+    ...(state.source === 'orig' || state.source === 'all' ? cats.map((c) => ({ kind: 'cat', key: c })) : []),
+    ...tabs.map((x) => ({ kind: 'tab', key: x })),
+  ];
   els.chips.replaceChildren();
-  if (!cats.length) return;
-  for (const c of ['', ...cats]) {
+  if (!entries.length) { updateChipArrows(); return; }
+  const mk = (label, kind, key) => {
     const b = document.createElement('button');
     b.className = 'chip';
-    b.textContent = c ? categoryLabel(c) : t('all');
-    b.setAttribute('aria-pressed', String(c === state.category));
+    b.textContent = label;
+    const on = () => (kind === 'cat' ? state.category === key && !state.tab : kind === 'tab' ? state.tab === key : !state.category && !state.tab);
+    b.setAttribute('aria-pressed', String(on()));
     b.onclick = () => {
-      state.category = c;
-      els.chips.querySelectorAll('.chip').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      state.category = kind === 'cat' ? key : '';
+      state.tab = kind === 'tab' ? key : '';
+      renderChips();
       applyFilters();
     };
     els.chips.appendChild(b);
-  }
+  };
+  mk(t('all'), 'all', '');
+  entries.forEach((e) => mk(e.kind === 'cat' ? categoryLabel(e.key) : e.key, e.kind, e.key));
   updateChipArrows();
 }
 

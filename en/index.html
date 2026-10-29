@@ -43,10 +43,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="/styles.css?v=28">
+  <link rel="stylesheet" href="/styles.css?v=29">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" defer></script>
-  <script src="/app.js?v=32" defer></script>
-  <script src="/accounts.js?v=8" defer></script>
+  <script src="/app.js?v=33" defer></script>
+  <script src="/accounts.js?v=9" defer></script>
 </head>
 <body>
   <div class="app" id="app">
@@ -82,6 +82,16 @@
           <svg class="search-ico" viewBox="0 0 24 24" width="16" height="16"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           <input id="search" type="search" data-i18n-attr="placeholder:search;aria-label:searchLabel" autocomplete="off" spellcheck="false">
         </div>
+        <div class="source-bar" id="sourceBar" hidden>
+          <div class="source-select" id="sourceSelect">
+            <button class="source-btn" id="sourceBtn" type="button" aria-haspopup="listbox" aria-expanded="false"></button>
+            <div class="source-menu" id="sourceMenu" role="listbox" hidden></div>
+          </div>
+          <button class="mini-btn" id="importBtn" type="button" data-i18n-attr="title:importTitle;aria-label:importTitle">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 15V4m0 0L8 8m4-4 4 4M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span data-i18n="importShort">Importar</span>
+          </button>
+        </div>
         <div class="filters" id="filters">
           <button class="chip-arrow prev" id="chipsPrev" data-i18n-attr="aria-label:prevCats" tabindex="-1">
             <svg viewBox="0 0 24 24" width="14" height="14"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -91,16 +101,8 @@
             <svg viewBox="0 0 24 24" width="14" height="14"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
         </div>
-        <div class="chips sheet-row" id="sheetChips" role="toolbar" hidden></div>
-        <div class="chips sheet-row" id="tabChips" role="toolbar" hidden></div>
         <div class="list-head">
           <p class="count" id="count" data-i18n="loading">Cargando productos…</p>
-          <div class="list-actions">
-            <button class="mini-btn" id="importBtn" type="button" hidden data-i18n-attr="title:importTitle;aria-label:importTitle">
-              <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 15V4m0 0L8 8m4-4 4 4M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              <span data-i18n="importShort">Importar</span>
-            </button>
-          </div>
           <div class="sort-wrap">
             <select id="sort" data-i18n-attr="aria-label:sortLabel">
               <option value="default" data-i18n="sortDefault">Destacados</option>
