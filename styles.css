@@ -1156,7 +1156,7 @@ body.modal-open { overflow: hidden; }
 #tool-hauls { overflow: hidden; }
 .haul-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
 .haul-head .tool-title { margin: 0; }
-.haul-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; overflow-y: auto; padding: 6px 0 28px; }
+.haul-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; overflow-y: auto; padding: 6px 0 28px; }
 .haul-card {
   display: flex;
   flex-direction: column;
@@ -1257,3 +1257,18 @@ body.modal-open { overflow: hidden; }
 .add-card .name { color: inherit; min-height: 2.66em; }
 .card-act.move { right: auto; left: 12px; }
 .card-act.busy { opacity: .5; pointer-events: none; }
+
+/* Vista previa de cada haul: alargada, con las fotos en fila y el botón de compartir dentro */
+.haul-card { padding: 8px 8px 10px; gap: 0; cursor: pointer; }
+.haul-cover.wide { grid-template-columns: repeat(4, 1fr); aspect-ratio: 4 / 1; margin-bottom: 10px; }
+.haul-cell:empty { background: var(--fill); box-shadow: none; }
+.haul-info { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 4px; }
+.haul-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.haul-share { flex: none; width: 32px; height: 32px; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--fill); color: var(--ink-2); cursor: pointer; transition: background .2s, color .2s, transform .15s; }
+.haul-share:hover { background: var(--accent); color: #fff; }
+.haul-share:active { transform: scale(.92); }
+/* Botón de añadir subcarpeta: icono grande y texto centrados y juntos */
+.add-card { aspect-ratio: 1 / 1.27; align-items: center; justify-content: center; gap: 2px; padding: 12px; text-align: center; }
+.add-card .thumb { flex: none; width: auto; aspect-ratio: auto; background: transparent; overflow: visible; }
+.add-card .meta { padding: 0; align-items: center; }
+.add-card .name { min-height: 0; text-align: center; -webkit-line-clamp: 2; }

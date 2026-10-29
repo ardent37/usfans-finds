@@ -295,11 +295,12 @@ const Hauls = (() => {
     });
   }
 
-  async function shareModal() {
+  async function shareModal(target) {
     const { el, openModal, heading, closeBtn } = U();
+    const h = target && target.id ? target : cur;
     let sid;
-    try { sid = (await A().api(`/hauls/${cur.id}/share`, { method: 'POST' })).share; } catch { return toast(t('errGeneric')); }
-    cur.share = sid;
+    try { sid = (await A().api(`/hauls/${h.id}/share`, { method: 'POST' })).share; } catch { return toast(t('errGeneric')); }
+    h.share = sid;
     const url = `${location.origin}/?haul=${sid}`;
     const field = el('input', { type: 'text', readonly: true, value: url, 'aria-label': t('shareTitle') });
     field.addEventListener('focus', () => field.select());
@@ -310,9 +311,9 @@ const Hauls = (() => {
       setTimeout(() => { copy.textContent = t('shareCopy'); }, 1800);
     };
     const stop = twice(t('shareStop'), async () => {
-      try { await A().api(`/hauls/${cur.id}/share`, { method: 'DELETE' }); cur.share = null; U().closeModal(); } catch { toast(t('errGeneric')); }
+      try { await A().api(`/hauls/${h.id}/share`, { method: 'DELETE' }); h.share = null; U().closeModal(); } catch { toast(t('errGeneric')); }
     });
-    const native = navigator.share ? el('button', { class: 'btn ghost', type: 'button', text: t('shareSystem'), onclick: () => navigator.share({ title: cur.name, url }).catch(() => {}) }) : null;
+    const native = navigator.share ? el('button', { class: 'btn ghost', type: 'button', text: t('shareSystem'), onclick: () => navigator.share({ title: h.name, url }).catch(() => {}) }) : null;
     openModal(closeBtn(), ...heading(t('shareTitle'), t('shareText')),
       el('div', { class: 'modal-form' }, el('div', { class: 'field' }, field), copy, el('div', { class: 'modal-row spread' }, native || el('span'), stop)));
   }
@@ -335,9 +336,9 @@ const Hauls = (() => {
       el('strong', { text: t('haulsLoginTitle') }), el('span', { text: t('haulsLoginText') }), b));
   }
 
-  function mosaic(images) {
+  function mosaic(images, wide) {
     const { el } = U();
-    const cover = el('div', { class: 'haul-cover' });
+    const cover = el('div', { class: `haul-cover${wide ? ' wide' : ''}` });
     for (let i = 0; i < 4; i++) {
       const cell = el('span', { class: 'haul-cell' });
       if (images[i]) {
@@ -358,11 +359,18 @@ const Hauls = (() => {
       el('h2', { class: 'tool-title', text: t('haulsTitle') }),
       el('button', { class: 'btn ghost', type: 'button', text: `＋ ${t('haulsNew')}`, onclick: () => newHaulModal(null) }));
     const grid = el('div', { class: 'haul-grid' });
-    for (const h of list) {
-      grid.append(el('button', { class: 'haul-card', type: 'button', onclick: () => openHaul(h.id) },
-        mosaic(h.cover),
-        el('span', { class: 'haul-name', text: h.name }),
-        el('span', { class: 'haul-meta' }, summary(h.count, h.total, h.unpriced))));
+    for (const hl of list) {
+      const share = el('button', { class: 'haul-share', type: 'button', title: t('shareBtn'), 'aria-label': t('shareBtn'), onclick: (e) => { e.stopPropagation(); shareModal(hl); } });
+      share.innerHTML = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M12 15V4m0 0L8 8m4-4 4 4M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      const card = el('div', { class: 'haul-card', role: 'button', tabindex: '0', onclick: () => openHaul(hl.id) },
+        mosaic(hl.cover, true),
+        el('div', { class: 'haul-info' },
+          el('div', { class: 'haul-text' },
+            el('span', { class: 'haul-name', text: hl.name }),
+            el('span', { class: 'haul-meta' }, summary(hl.count, hl.total, hl.unpriced))),
+          share));
+      card.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === card) { e.preventDefault(); openHaul(hl.id); } });
+      grid.append(card);
     }
     root().replaceChildren(head, list.length ? grid : el('p', { class: 'haul-empty', text: t('haulsEmpty') }));
   }
@@ -476,7 +484,7 @@ const Hauls = (() => {
     const { el } = U();
     const tile = el('button', { class: 'card add-card', type: 'button', onclick: newFolderModal },
       el('div', { class: 'thumb' }));
-    tile.querySelector('.thumb').innerHTML = '<svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><path d="M3.5 8.2A2.2 2.2 0 0 1 5.7 6h3.2c.5 0 1 .2 1.3.6l.8 1c.3.4.8.6 1.3.6h5.9a2.2 2.2 0 0 1 2.2 2.2v6.4a2.2 2.2 0 0 1-2.2 2.2H5.7a2.2 2.2 0 0 1-2.2-2.2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 11.2v4.6M9.7 13.5h4.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+    tile.querySelector('.thumb').innerHTML = '<svg viewBox="0 0 24 24" width="72" height="72" aria-hidden="true"><path d="M3.5 8.2A2.2 2.2 0 0 1 5.7 6h3.2c.5 0 1 .2 1.3.6l.8 1c.3.4.8.6 1.3.6h5.9a2.2 2.2 0 0 1 2.2 2.2v6.4a2.2 2.2 0 0 1-2.2 2.2H5.7a2.2 2.2 0 0 1-2.2-2.2z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M12 11.2v4.6M9.7 13.5h4.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>';
     tile.append(el('div', { class: 'meta' }, el('span', { class: 'name', text: t('folderAdd') })));
     return tile;
   }
@@ -509,7 +517,7 @@ const Hauls = (() => {
       : twice(t('haulDelete'), async () => {
         try { await A().api(`/hauls/${cur.id}`, { method: 'DELETE' }); cur = null; show(); } catch { toast(t('errGeneric')); }
       });
-    const share = inFolder ? null : el('button', { class: 'btn ghost', type: 'button', onclick: shareModal });
+    const share = inFolder ? null : el('button', { class: 'btn ghost', type: 'button', onclick: () => shareModal(cur) });
     if (share) share.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 15V4m0 0L8 8m4-4 4 4M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     if (share) share.append(document.createTextNode(` ${t('shareBtn')}`));
 
@@ -655,6 +663,7 @@ const Hauls = (() => {
 
   // Enlace compartido: ?haul=ID
   function start() {
+    if (!CONFIG.accountApi) return;
     const sid = new URLSearchParams(location.search).get('haul');
     if (sid && /^[\w-]{8,24}$/.test(sid)) showShared(sid);
   }
