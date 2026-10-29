@@ -174,7 +174,7 @@ const Accounts = (() => {
   let onClose = null;
 
   function openModal(...nodes) {
-    $('modalCard').replaceChildren(...nodes);
+    $('modalCard').replaceChildren(...nodes.filter(Boolean));
     modal().hidden = false;
     document.body.classList.add('modal-open');
     $('modalCard').querySelector('input:not([type=checkbox])')?.focus();
