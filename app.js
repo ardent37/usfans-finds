@@ -79,6 +79,11 @@ const I18N = {
     newTab: 'Nueva pestaña',
     closeTab: 'Cerrar pestaña',
     homeTitle: 'Registro en USFans',
+    urlPlaceholder: 'Escribe o pega un enlace de USFans, Weidian, Taobao o 1688',
+    urlOnlyUsfans: 'Solo se pueden abrir enlaces de USFans, Weidian, Taobao o 1688.',
+    urlNoConvert: 'No se puede convertir ese enlace a USFans (el ID del producto está cifrado). Búscalo en USFans.',
+    tabUsfans: 'USFans',
+    tabProduct: 'Producto',
     goHome: '← Registro',
     openBrowser: 'Abrir en navegador',
     hint: 'Haz clic derecho en un producto para ver más opciones. Si algo no carga o no puedes pagar, ábrela en tu navegador con el icono de la barra de direcciones.',
@@ -155,6 +160,11 @@ const I18N = {
     newTab: 'New tab',
     closeTab: 'Close tab',
     homeTitle: 'Sign up on USFans',
+    urlPlaceholder: 'Type or paste a USFans, Weidian, Taobao or 1688 link',
+    urlOnlyUsfans: 'Only USFans, Weidian, Taobao or 1688 links can be opened.',
+    urlNoConvert: 'That link can’t be converted to USFans (the product ID is encrypted). Look it up on USFans.',
+    tabUsfans: 'USFans',
+    tabProduct: 'Product',
     goHome: '← Sign up',
     openBrowser: 'Open in browser',
     hint: 'Right-click a product for more options. If something doesn’t load or you can’t pay, open the page in your browser with the icon in the address bar.',
@@ -614,6 +624,58 @@ let tabSeq = 0;
 // La pestaña de registro no guarda título: se muestra en el idioma actual
 const HOME_TITLE = '';
 const tabTitle = (tab) => (tab.url === CONFIG.homeUrl ? t('homeTitle') : tab.title);
+
+// Aviso breve en la parte baja de la pantalla
+function toastMsg(text) {
+  let el = document.getElementById('toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast';
+    el.className = 'toast';
+    el.setAttribute('role', 'status');
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  el.classList.add('show');
+  clearTimeout(toastMsg.t);
+  toastMsg.t = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+// Lo que se escribe en la barra de direcciones: un enlace de USFans se abre tal cual (con el código de referido),
+// y uno de Weidian, Taobao, 1688 o de otro agente se convierte en la página de ese producto en USFans.
+function resolveTypedUrl(raw) {
+  const text = String(raw || '').trim().replace(/^["'“‘]+|["'”’]+$/g, '');
+  if (!text) return { empty: true };
+  let u;
+  try {
+    u = new URL(/^[a-z][a-z\d+.-]*:\/\//i.test(text) ? text : `https://${text}`);
+  } catch {
+    return { error: 'urlOnlyUsfans' };
+  }
+  if (!/^https?:$/.test(u.protocol)) return { error: 'urlOnlyUsfans' };
+  if (/(^|\.)usfans\.com$/i.test(u.hostname)) return { url: withRef(u.toString()) };
+  const r = parseProductLink(u.toString());
+  if (!r) return { error: 'urlOnlyUsfans' };
+  if (r.encrypted) return { error: 'urlNoConvert' };
+  return { url: withRef(`https://usfans.com/product/${r.platform}/${r.id}`), product: true };
+}
+
+function setupUrlBar() {
+  const field = els.urlField;
+  const shown = () => (activeTab ? activeTab.url.replace(/^https?:\/\//, '') : '');
+  field.addEventListener('focus', () => field.select());
+  field.addEventListener('blur', () => { field.value = shown(); });
+  field.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { field.value = shown(); field.blur(); return; }
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const r = resolveTypedUrl(field.value);
+    if (r.empty) { field.blur(); return; }
+    if (r.error) { toastMsg(t(r.error)); return; }
+    navigateTab(activeTab, r.url, t(r.product ? 'tabProduct' : 'tabUsfans'));
+    field.blur();
+  });
+}
 
 function syncActiveUi() {
   els.frameLoading.classList.toggle('done', activeTab.loaded);
@@ -1412,6 +1474,7 @@ async function init() {
   });
   renderTools();
   setupResizer();
+  setupUrlBar();
   setupSwipe();
   setupQc();
   setupTheme();

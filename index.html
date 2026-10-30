@@ -43,11 +43,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="/styles.css?v=38">
+  <link rel="stylesheet" href="/styles.css?v=39">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" defer></script>
-  <script src="/app.js?v=36" defer></script>
-  <script src="/accounts.js?v=15" defer></script>
-  <script src="/hauls.js?v=5" defer></script>
+  <script src="/app.js?v=37" defer></script>
+  <script src="/accounts.js?v=16" defer></script>
+  <script src="/hauls.js?v=6" defer></script>
 </head>
 <body>
   <div class="app" id="app">
@@ -175,7 +175,7 @@
         <a class="icon-btn sm" id="openTabIcon" href="#" target="_blank" rel="noopener" data-i18n-attr="title:openInBrowser;aria-label:openInBrowser">
           <svg viewBox="0 0 24 24" width="15" height="15"><path d="M14 5h5v5M19 5l-8 8M18 14v3.5A2.5 2.5 0 0 1 15.5 20h-9A2.5 2.5 0 0 1 4 17.5v-9A2.5 2.5 0 0 1 6.5 6H10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
-        <input class="url-field" id="urlField" type="text" readonly spellcheck="false" autocomplete="off" aria-label="URL">
+        <input class="url-field" id="urlField" type="text" inputmode="url" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="URL" data-i18n-attr="placeholder:urlPlaceholder">
       </div>
       <div class="frame-wrap" id="frames">
         <div class="frame-loading" id="frameLoading"><span class="spinner"></span></div>

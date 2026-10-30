@@ -62,7 +62,7 @@ Object.assign(I18N.es, {
   shareViewTitle: 'Solo ver',
   shareViewText: 'Cualquiera con este enlace podrá ver el haul, sin poder cambiarlo.',
   shareEditTitle: 'Ver y editar en equipo',
-  shareEditText: 'Quien abra este enlace e inicie sesión podrá añadir, quitar y mover productos. Los cambios se ven en los dos lados. Máximo 5 colaboradores.',
+  shareEditText: 'Quien abra este enlace e inicie sesión podrá añadir, quitar y mover productos. Los cambios se ven en los dos lados. Máximo 5 colaboradores, que verán el correo de los demás.',
   shareCreate: 'Crear enlace',
   shareCollab: 'Colaboradores',
   shareYou: '(tú)',
@@ -76,7 +76,7 @@ Object.assign(I18N.es, {
   haulSharedWithYou: 'Compartido contigo',
   inviteTitle: 'Te invitan a editar «{name}»',
   inviteText: 'Podrás añadir, quitar y mover productos, y los cambios se verán para todos.',
-  inviteNick: 'Tu apodo (lo verán los demás)',
+  inviteEmailNote: 'Los demás colaboradores de este haul verán tu correo electrónico.',
   inviteJoin: 'Unirme al haul',
   inviteGone: 'Esta invitación ya no es válida.',
   inviteMax: 'Este haul ya tiene el máximo de colaboradores.',
@@ -140,7 +140,7 @@ Object.assign(I18N.en, {
   shareViewTitle: 'View only',
   shareViewText: 'Anyone with this link can see the haul but not change it.',
   shareEditTitle: 'View and edit as a team',
-  shareEditText: 'Anyone who opens this link and signs in can add, remove and move products. Changes show up for everyone. Up to 5 collaborators.',
+  shareEditText: 'Anyone who opens this link and signs in can add, remove and move products. Changes show up for everyone. Up to 5 collaborators, who can see each other’s email.',
   shareCreate: 'Create link',
   shareCollab: 'Collaborators',
   shareYou: '(you)',
@@ -154,7 +154,7 @@ Object.assign(I18N.en, {
   haulSharedWithYou: 'Shared with you',
   inviteTitle: 'You’re invited to edit “{name}”',
   inviteText: 'You’ll be able to add, remove and move products, and everyone will see the changes.',
-  inviteNick: 'Your nickname (others will see it)',
+  inviteEmailNote: 'The other collaborators of this haul will see your email address.',
   inviteJoin: 'Join the haul',
   inviteGone: 'This invitation is no longer valid.',
   inviteMax: 'This haul already has the maximum number of collaborators.',
@@ -197,6 +197,14 @@ const Hauls = (() => {
   });
 
   const errText = (e) => ({ max_hauls: t('haulMaxHauls'), max_items: t('haulMaxItems'), max_folders: t('haulMaxFolders') }[e.code] || t('errGeneric'));
+
+  // Icono de varias personas (haul compartido), en el naranja de la web
+  const PEOPLE_ICON = () => {
+    const w = document.createElement('span');
+    w.className = 'people-ico';
+    w.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="9" cy="8.2" r="3.1" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3.4 19c.5-3.3 2.7-5.1 5.6-5.1s5.1 1.8 5.6 5.1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="17.2" cy="9.2" r="2.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M16.6 13.9c2.3.1 3.9 1.5 4.4 4.3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+    return w;
+  };
 
   const money = (n) => n.toLocaleString(locale(), { style: 'currency', currency: 'EUR' });
   const countText = (n) => (n === 1 ? t('haulCount1') : t('haulCount', { n }));
@@ -382,7 +390,7 @@ const Hauls = (() => {
 
       const people = el('ul', { class: 'acc-list' });
       for (const m of h.members) {
-        const label = `${m.nick}${m.me ? ` ${t('shareYou')}` : ''}${m.owner ? ` · ${t('shareOwner')}` : ''}`;
+        const label = `${m.email}${m.me ? ` ${t('shareYou')}` : ''}${m.owner ? ` · ${t('shareOwner')}` : ''}`;
         const li = el('li', {}, el('span', { class: 'acc-name' }, el('b', { text: label })));
         if (!m.owner && !m.me) {
           li.append(twice(t('shareRemoveMember'), async () => {
@@ -455,7 +463,7 @@ const Hauls = (() => {
         mosaic(hl.cover, true),
         el('div', { class: 'haul-info' },
           el('div', { class: 'haul-text' },
-            el('span', { class: 'haul-name' }, hl.name, (!isOwner || hl.collaborators) ? el('span', { class: 'haul-people', title: isOwner ? t('haulSharedBadge') : t('haulSharedWithYou'), text: `👥${hl.collaborators ? ` ${hl.collaborators + 1}` : ''}` }) : null),
+            el('span', { class: 'haul-name' }, hl.name, (!isOwner || hl.collaborators) ? el('span', { class: 'haul-people', title: isOwner ? t('haulSharedBadge') : t('haulSharedWithYou'), }, PEOPLE_ICON(), hl.collaborators ? document.createTextNode(` ${hl.collaborators + 1}`) : null) : null),
             el('span', { class: 'haul-meta' }, summary(hl.count, hl.total, hl.unpriced))),
           share));
       card.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === card) { e.preventDefault(); openHaul(hl.id); } });
@@ -678,7 +686,7 @@ const Hauls = (() => {
     const el = $('haulCollab');
     if (!el || !cur) return;
     el.hidden = (cur.members || []).length < 2;
-    el.textContent = el.hidden ? '' : t('haulCollab', { names: cur.members.map((m) => `${m.nick}${m.me ? ` ${t('shareYou')}` : ''}`).join(', ') });
+    el.textContent = el.hidden ? '' : t('haulCollab', { names: cur.members.map((m) => `${m.email}${m.me ? ` ${t('shareYou')}` : ''}`).join(', ') });
   }
 
   function paintBody() {
@@ -811,16 +819,14 @@ const Hauls = (() => {
     let info;
     try { info = await A().api(`/invite/${code}`); } catch { return toast(t('inviteGone')); }
     const err = errBox();
-    const nick = el('input', { type: 'text', maxlength: '24', placeholder: t('inviteNick'), 'aria-label': t('inviteNick') });
-    nick.value = A().nick();
     const go = el('button', { class: 'btn modal-btn', type: 'submit', text: t('inviteJoin') });
-    const form = el('form', { class: 'modal-form', novalidate: true }, el('div', { class: 'field' }, nick), err, go);
+    const form = el('form', { class: 'modal-form', novalidate: true }, el('p', { class: 'modal-note', text: t('inviteEmailNote') }), err, go);
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!A().isLoggedIn()) return A().login(() => joinInvite(code));
       go.disabled = true;
       try {
-        const r = await api(`/invite/${code}/join`, { method: 'POST', body: { nick: nick.value.trim() } });
+        const r = await api(`/invite/${code}/join`, { method: 'POST', body: {} });
         U().closeModal();
         try { history.replaceState(null, '', location.pathname); } catch { /* sin historial */ }
         cur = null;

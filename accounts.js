@@ -429,16 +429,6 @@ const Accounts = (() => {
   /* ---------- Cuenta ---------- */
   function accountModal() {
     const err = errBox();
-    const marketing = el('input', { type: 'checkbox' });
-    marketing.checked = !!me.marketing;
-    marketing.addEventListener('change', async () => {
-      try { await call('/me/marketing', { method: 'POST', body: { marketing: marketing.checked } }); me.marketing = marketing.checked; } catch { marketing.checked = !marketing.checked; }
-    });
-    const nickInput = el('input', { type: 'text', maxlength: '24', placeholder: '…', 'aria-label': t('accNick') });
-    nickInput.value = me.nick || '';
-    nickInput.addEventListener('change', async () => {
-      try { await call('/me/nick', { method: 'PUT', body: { nick: nickInput.value.trim() } }); me.nick = nickInput.value.trim(); } catch { nickInput.value = me.nick || ''; }
-    });
     const list = el('ul', { class: 'acc-list' });
     if (!me.imports.length) list.append(el('li', { class: 'acc-empty', text: t('accNoImports') }));
     for (const imp of me.imports) {
@@ -451,9 +441,6 @@ const Accounts = (() => {
     openModal(
       closeBtn(),
       ...heading(t('accTitle'), me.email),
-      el('label', { class: 'modal-label', text: t('accNick') }),
-      el('div', { class: 'field' }, nickInput),
-      el('label', { class: 'check' }, marketing, el('span', { text: t('accMarketing') })),
       el('h3', { class: 'modal-h3', text: t('accImports') }), list, err,
       el('div', { class: 'modal-row spread' },
         el('button', { class: 'btn ghost', type: 'button', text: t('accSignOut'), onclick: signOut }),
@@ -929,7 +916,7 @@ const Accounts = (() => {
 
   return {
     start, watch, tabNames,
-    api: call, nick: () => (me && me.nick) || '', isLoggedIn: () => !!me, login: (after) => loginModal(after),
+    api: call, isLoggedIn: () => !!me, login: (after) => loginModal(after),
     ui: { el, openModal, closeModal, heading, closeBtn, errBox, showErr },
   };
 })();
