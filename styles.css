@@ -1272,3 +1272,14 @@ body.modal-open { overflow: hidden; }
 .add-card .thumb { flex: none; width: auto; aspect-ratio: auto; background: transparent; overflow: visible; }
 .add-card .meta { padding: 0; align-items: center; }
 .add-card .name { min-height: 0; text-align: center; -webkit-line-clamp: 2; }
+
+/* Tamaño de las vistas previas de los hauls: con la ventana de herramientas desplegada por completo caben 3 por fila.
+   Es el tamaño máximo; con el panel más estrecho se reducen y nunca lo superan. */
+.haul-grid {
+  --haul-max: calc((100vw - 110px) / 3);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--haul-max)), 1fr));
+}
+.haul-card { width: 100%; max-width: var(--haul-max); }
+@media (max-width: 820px) {
+  .haul-grid { --haul-max: 100%; }
+}
