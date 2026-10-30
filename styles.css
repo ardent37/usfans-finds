@@ -1277,9 +1277,11 @@ body.modal-open { overflow: hidden; }
    Es el tamaño máximo; con el panel más estrecho se reducen y nunca lo superan. */
 .haul-grid {
   --haul-max: calc((100vw - 110px) / 3);
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--haul-max)), 1fr));
+  /* Columnas de tamaño fijo (el máximo) y pegadas a la izquierda: una columna nueva solo aparece cuando cabe entera, y las demás no se mueven */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--haul-max)), var(--haul-max)));
+  justify-content: start;
 }
-.haul-card { width: 100%; max-width: var(--haul-max); }
+.haul-card { width: 100%; }
 @media (max-width: 820px) {
   .haul-grid { --haul-max: 100%; }
 }
