@@ -1295,3 +1295,7 @@ body.modal-open { overflow: hidden; }
 .haul-collab[hidden] { display: none; }
 .haul-people { margin-left: 6px; color: var(--muted); font-size: 11.5px; font-weight: 400; }
 .haul-share[hidden] { display: none; }
+
+/* Mosaico de los hauls: sin fondo blanco detrás (se veía en el tema oscuro en los huecos y las esquinas); cada casilla lleva su propio fondo y esquinas */
+.haul-cover { background: transparent; }
+.haul-cell { border-radius: 7px; overflow: hidden; }
