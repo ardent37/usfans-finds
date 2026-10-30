@@ -59,6 +59,28 @@ Object.assign(I18N.es, {
   sharedSaved: 'Guardado en tus hauls',
   sharedGone: 'Este haul ya no está compartido o el enlace no es válido.',
   sharedClose: 'Cerrar',
+  shareViewTitle: 'Solo ver',
+  shareViewText: 'Cualquiera con este enlace podrá ver el haul, sin poder cambiarlo.',
+  shareEditTitle: 'Ver y editar en equipo',
+  shareEditText: 'Quien abra este enlace e inicie sesión podrá añadir, quitar y mover productos. Los cambios se ven en los dos lados. Máximo 5 colaboradores.',
+  shareCreate: 'Crear enlace',
+  shareCollab: 'Colaboradores',
+  shareYou: '(tú)',
+  shareOwner: 'dueño',
+  shareRemoveMember: 'Quitar',
+  haulLeave: 'Salir del haul',
+  haulLeaveDone: 'Has salido del haul',
+  haulGone: 'Ya no tienes acceso a ese haul.',
+  haulCollab: 'Colaboran: {names}',
+  haulSharedBadge: 'Compartido',
+  haulSharedWithYou: 'Compartido contigo',
+  inviteTitle: 'Te invitan a editar «{name}»',
+  inviteText: 'Podrás añadir, quitar y mover productos, y los cambios se verán para todos.',
+  inviteNick: 'Tu apodo (lo verán los demás)',
+  inviteJoin: 'Unirme al haul',
+  inviteGone: 'Esta invitación ya no es válida.',
+  inviteMax: 'Este haul ya tiene el máximo de colaboradores.',
+  inviteJoined: 'Te has unido a «{name}»',
 });
 Object.assign(I18N.en, {
   toolHauls: 'My hauls',
@@ -115,12 +137,40 @@ Object.assign(I18N.en, {
   sharedSaved: 'Saved to your hauls',
   sharedGone: 'This haul is no longer shared or the link isn’t valid.',
   sharedClose: 'Close',
+  shareViewTitle: 'View only',
+  shareViewText: 'Anyone with this link can see the haul but not change it.',
+  shareEditTitle: 'View and edit as a team',
+  shareEditText: 'Anyone who opens this link and signs in can add, remove and move products. Changes show up for everyone. Up to 5 collaborators.',
+  shareCreate: 'Create link',
+  shareCollab: 'Collaborators',
+  shareYou: '(you)',
+  shareOwner: 'owner',
+  shareRemoveMember: 'Remove',
+  haulLeave: 'Leave haul',
+  haulLeaveDone: 'You left the haul',
+  haulGone: 'You no longer have access to that haul.',
+  haulCollab: 'Working on it: {names}',
+  haulSharedBadge: 'Shared',
+  haulSharedWithYou: 'Shared with you',
+  inviteTitle: 'You’re invited to edit “{name}”',
+  inviteText: 'You’ll be able to add, remove and move products, and everyone will see the changes.',
+  inviteNick: 'Your nickname (others will see it)',
+  inviteJoin: 'Join the haul',
+  inviteGone: 'This invitation is no longer valid.',
+  inviteMax: 'This haul already has the maximum number of collaborators.',
+  inviteJoined: 'You joined “{name}”',
 });
 
 const Hauls = (() => {
   const A = () => window.Accounts;
   const root = () => $('tool-hauls');
   const U = () => A().ui;
+  let busy = 0; // cambios míos que aún no ha confirmado el servidor
+  const api = (path, opts) => {
+    const mutating = opts && opts.method && opts.method !== 'GET';
+    if (mutating) busy++;
+    return A().api(path, opts).finally(() => { if (mutating) busy--; });
+  };
   let list = null;      // hauls de la cuenta: { id, name, count, total, unpriced, keys, cover, folders }
   let cur = null;       // haul abierto: { id, name, share, folders, items }
   let folderId = null;  // subcarpeta abierta dentro de cur (null = el haul)
@@ -185,7 +235,7 @@ const Hauls = (() => {
   }
 
   async function load() {
-    list = (await A().api('/hauls')).hauls;
+    list = (await api('/hauls')).hauls;
   }
 
   const spinner = () => U().el('div', { class: 'modal-spin' }, U().el('span', { class: 'spinner' }));
@@ -236,12 +286,12 @@ const Hauls = (() => {
   async function toggle(h, snap, folder) {
     try {
       if (h.keys.includes(snap.k)) {
-        await A().api(`/hauls/${h.id}/items/${encodeURIComponent(snap.k)}`, { method: 'DELETE' });
+        await api(`/hauls/${h.id}/items/${encodeURIComponent(snap.k)}`, { method: 'DELETE' });
         h.keys = h.keys.filter((x) => x !== snap.k);
         h.count--;
         toast(t('haulRemoved', { name: h.name }));
       } else {
-        await A().api(`/hauls/${h.id}/items`, { method: 'POST', body: { items: [snap], folder } });
+        await api(`/hauls/${h.id}/items`, { method: 'POST', body: { items: [snap], folder } });
         h.keys.unshift(snap.k);
         h.count++;
         toast(t('haulAdded', { name: h.name }));
@@ -275,8 +325,8 @@ const Hauls = (() => {
     nameModal({
       title: `${t('haulsNew')} haul`, label: t('haulNameLabel'), ph: t('haulNamePh'), button: t('haulCreate'),
       onSubmit: async (name) => {
-        const h = await A().api('/hauls', { method: 'POST', body: { name } });
-        if (snap) await A().api(`/hauls/${h.id}/items`, { method: 'POST', body: { items: [snap] } });
+        const h = await api('/hauls', { method: 'POST', body: { name } });
+        if (snap) await api(`/hauls/${h.id}/items`, { method: 'POST', body: { items: [snap] } });
         await load();
         if (snap) toast(t('haulAdded', { name: h.name }));
         else if (activeTool === 'hauls') await openHaul(h.id);
@@ -288,7 +338,7 @@ const Hauls = (() => {
     nameModal({
       title: t('folderNew'), label: t('folderNameLabel'), ph: t('folderNamePh'), button: t('folderCreate'),
       onSubmit: async (name) => {
-        const f = await A().api(`/hauls/${cur.id}/folders`, { method: 'POST', body: { name } });
+        const f = await api(`/hauls/${cur.id}/folders`, { method: 'POST', body: { name } });
         cur.folders.push({ id: f.id, name: f.name });
         renderHaul();
       },
@@ -297,33 +347,69 @@ const Hauls = (() => {
 
   async function shareModal(target) {
     const { el, openModal, heading, closeBtn } = U();
-    const h = target && target.id ? target : cur;
-    let sid;
-    try { sid = (await A().api(`/hauls/${h.id}/share`, { method: 'POST' })).share; } catch { return toast(t('errGeneric')); }
-    h.share = sid;
-    const url = `${location.origin}/?haul=${sid}`;
-    const field = el('input', { type: 'text', readonly: true, value: url, 'aria-label': t('shareTitle') });
-    field.addEventListener('focus', () => field.select());
-    const copy = el('button', { class: 'btn modal-btn', type: 'button', text: t('shareCopy') });
-    copy.onclick = async () => {
-      try { await navigator.clipboard.writeText(url); } catch { field.select(); document.execCommand('copy'); }
-      copy.textContent = `✓ ${t('shareCopied')}`;
-      setTimeout(() => { copy.textContent = t('shareCopy'); }, 1800);
+    const base = target && target.id ? target : cur;
+    let h;
+    try { h = await api(`/hauls/${base.id}`); } catch { return toast(t('errGeneric')); }
+
+    const draw = () => {
+      if (cur && cur.id === h.id) { cur.share = h.share; cur.edit = h.edit; cur.members = h.members; paintCollab(); startPolling(); }
+      const block = (mode, title, text, code, param) => {
+        const box = el('div', { class: 'share-block' }, el('h3', { class: 'share-title', text: title }), el('p', { class: 'modal-note', text }));
+        const key = mode === 'edit' ? 'edit' : 'share';
+        if (!code) {
+          box.append(el('button', {
+            class: 'btn ghost share-create', type: 'button', text: `＋ ${t('shareCreate')}`,
+            onclick: async () => { try { h[key] = (await api(`/hauls/${h.id}/share?mode=${mode}`, { method: 'POST' }))[key]; draw(); } catch { toast(t('errGeneric')); } },
+          }));
+          return box;
+        }
+        const url = `${location.origin}/?${param}=${code}`;
+        const field = el('input', { type: 'text', readonly: true, value: url, 'aria-label': title });
+        field.addEventListener('focus', () => field.select());
+        const copy = el('button', { class: 'btn modal-btn', type: 'button', text: t('shareCopy') });
+        copy.onclick = async () => {
+          try { await navigator.clipboard.writeText(url); } catch { field.select(); document.execCommand('copy'); }
+          copy.textContent = `✓ ${t('shareCopied')}`;
+          setTimeout(() => { copy.textContent = t('shareCopy'); }, 1800);
+        };
+        const stop = twice(t('shareStop'), async () => {
+          try { await api(`/hauls/${h.id}/share?mode=${mode}`, { method: 'DELETE' }); h[key] = null; draw(); } catch { toast(t('errGeneric')); }
+        });
+        const native = navigator.share ? el('button', { class: 'btn ghost', type: 'button', text: t('shareSystem'), onclick: () => navigator.share({ title: h.name, url }).catch(() => {}) }) : null;
+        box.append(el('div', { class: 'field' }, field), copy, el('div', { class: 'modal-row spread' }, native || el('span'), stop));
+        return box;
+      };
+
+      const people = el('ul', { class: 'acc-list' });
+      for (const m of h.members) {
+        const label = `${m.nick}${m.me ? ` ${t('shareYou')}` : ''}${m.owner ? ` · ${t('shareOwner')}` : ''}`;
+        const li = el('li', {}, el('span', { class: 'acc-name' }, el('b', { text: label })));
+        if (!m.owner && !m.me) {
+          li.append(twice(t('shareRemoveMember'), async () => {
+            try { await api(`/hauls/${h.id}/members/${m.id}`, { method: 'DELETE' }); h.members = h.members.filter((x) => x.id !== m.id); draw(); } catch { toast(t('errGeneric')); }
+          }));
+        }
+        people.append(li);
+      }
+      openModal(closeBtn(), ...heading(t('shareTitle'), h.name),
+        el('div', { class: 'modal-form' },
+          block('view', t('shareViewTitle'), t('shareViewText'), h.share, 'haul'),
+          block('edit', t('shareEditTitle'), t('shareEditText'), h.edit, 'edit'),
+          h.members.length > 1 ? el('h3', { class: 'modal-h3', text: t('shareCollab') }) : null,
+          h.members.length > 1 ? people : null));
     };
-    const stop = twice(t('shareStop'), async () => {
-      try { await A().api(`/hauls/${h.id}/share`, { method: 'DELETE' }); h.share = null; U().closeModal(); } catch { toast(t('errGeneric')); }
-    });
-    const native = navigator.share ? el('button', { class: 'btn ghost', type: 'button', text: t('shareSystem'), onclick: () => navigator.share({ title: h.name, url }).catch(() => {}) }) : null;
-    openModal(closeBtn(), ...heading(t('shareTitle'), t('shareText')),
-      el('div', { class: 'modal-form' }, el('div', { class: 'field' }, field), copy, el('div', { class: 'modal-row spread' }, native || el('span'), stop)));
+    draw();
   }
 
   /* ---------- Lista de hauls ---------- */
+  let pendingOpen = null;
+
   async function show() {
     if (shared) return renderShared();
     if (!A().isLoggedIn()) return renderLogin();
     root().replaceChildren(spinner());
     try { await load(); } catch { return renderLogin(); }
+    if (pendingOpen) { const id = pendingOpen; pendingOpen = null; return openHaul(id); }
     if (cur && !list.some((h) => h.id === cur.id)) { cur = null; folderId = null; }
     if (cur) return openHaul(cur.id, folderId);
     renderList();
@@ -355,18 +441,21 @@ const Hauls = (() => {
     const { el } = U();
     cur = null;
     folderId = null;
+    stopPolling();
     const head = el('div', { class: 'haul-head' },
       el('h2', { class: 'tool-title', text: t('haulsTitle') }),
       el('button', { class: 'btn ghost', type: 'button', text: `＋ ${t('haulsNew')}`, onclick: () => newHaulModal(null) }));
     const grid = el('div', { class: 'haul-grid' });
     for (const hl of list) {
+      const isOwner = hl.owner !== false;
       const share = el('button', { class: 'haul-share', type: 'button', title: t('shareBtn'), 'aria-label': t('shareBtn'), onclick: (e) => { e.stopPropagation(); shareModal(hl); } });
+      if (!isOwner) share.hidden = true;
       share.innerHTML = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M12 15V4m0 0L8 8m4-4 4 4M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       const card = el('div', { class: 'haul-card', role: 'button', tabindex: '0', onclick: () => openHaul(hl.id) },
         mosaic(hl.cover, true),
         el('div', { class: 'haul-info' },
           el('div', { class: 'haul-text' },
-            el('span', { class: 'haul-name', text: hl.name }),
+            el('span', { class: 'haul-name' }, hl.name, (!isOwner || hl.collaborators) ? el('span', { class: 'haul-people', title: isOwner ? t('haulSharedBadge') : t('haulSharedWithYou'), text: `👥${hl.collaborators ? ` ${hl.collaborators + 1}` : ''}` }) : null),
             el('span', { class: 'haul-meta' }, summary(hl.count, hl.total, hl.unpriced))),
           share));
       card.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === card) { e.preventDefault(); openHaul(hl.id); } });
@@ -375,10 +464,50 @@ const Hauls = (() => {
     root().replaceChildren(head, list.length ? grid : el('p', { class: 'haul-empty', text: t('haulsEmpty') }));
   }
 
+  /* ---------- Sincronización entre colaboradores ---------- */
+  // Los cambios no se mandan "enteros": cada acción (añadir, quitar, mover…) es una operación suelta que el servidor aplica sobre
+  // los datos de todos. Aquí solo se pregunta cada 15 s si la revisión del haul ha cambiado y, si es así, se descarga el estado actual,
+  // que ya incluye lo de todos.
+  let pollTimer = 0;
+  const POLL_MS = 15000;
+
+  function stopPolling() { clearInterval(pollTimer); pollTimer = 0; }
+
+  function startPolling() {
+    stopPolling();
+    if (!cur || !(cur.owner === false || (cur.members || []).length > 1 || cur.edit)) return; // un haul privado no necesita preguntar
+    pollTimer = setInterval(checkRev, POLL_MS);
+  }
+
+  async function checkRev() {
+    if (!cur || document.hidden || busy > 0 || typeof activeTool === 'undefined' || activeTool !== 'hauls' || shared) return;
+    const id = cur.id;
+    try {
+      const r = await A().api(`/hauls/${id}/rev`);
+      if (cur && cur.id === id && r.rev !== cur.rev) await refreshHaul();
+    } catch (e) {
+      if (e.status === 404 && cur && cur.id === id) { cur = null; folderId = null; stopPolling(); toast(t('haulGone')); show(); }
+    }
+  }
+
+  async function refreshHaul() {
+    const id = cur.id;
+    const fresh = await A().api(`/hauls/${id}`);
+    if (!cur || cur.id !== id || busy > 0) return; // el usuario acaba de hacer otro cambio: se mirará en la próxima ronda
+    cur = fresh;
+    if (folderId && !cur.folders.some((f) => f.id === folderId)) { folderId = null; return renderHaul(); }
+    const title = document.querySelector('.haul-title');
+    if (title && document.activeElement !== title) title.value = folderId ? cur.folders.find((f) => f.id === folderId).name : cur.name;
+    paintBody();
+    startPolling();
+  }
+
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && pollTimer) checkRev(); });
+
   async function openHaul(id, folder = null) {
     root().replaceChildren(spinner());
     try {
-      cur = await A().api(`/hauls/${id}`);
+      cur = await api(`/hauls/${id}`);
     } catch { return show(); }
     folderId = cur.folders.some((f) => f.id === folder) ? folder : null;
     query = '';
@@ -411,10 +540,10 @@ const Hauls = (() => {
     btn.classList.add('busy');
     try {
       if (inHaul(snap.k)) {
-        await A().api(`/hauls/${cur.id}/items/${encodeURIComponent(snap.k)}`, { method: 'DELETE' });
+        await api(`/hauls/${cur.id}/items/${encodeURIComponent(snap.k)}`, { method: 'DELETE' });
         cur.items = cur.items.filter((x) => x.k !== snap.k);
       } else {
-        await A().api(`/hauls/${cur.id}/items`, { method: 'POST', body: { items: [snap], folder: folderId } });
+        await api(`/hauls/${cur.id}/items`, { method: 'POST', body: { items: [snap], folder: folderId } });
         cur.items.unshift({ ...snap, f: folderId });
       }
       paintBody();
@@ -423,7 +552,7 @@ const Hauls = (() => {
 
   async function moveItem(k, to) {
     try {
-      await A().api(`/hauls/${cur.id}/items/move`, { method: 'POST', body: { k, folder: to } });
+      await api(`/hauls/${cur.id}/items/move`, { method: 'POST', body: { k, folder: to } });
       const it = cur.items.find((x) => x.k === k);
       if (it) it.f = to;
       paintBody();
@@ -505,19 +634,23 @@ const Hauls = (() => {
       const old = inFolder ? here.name : cur.name;
       if (!v) { title.value = old; return; }
       try {
-        await A().api(inFolder ? `/hauls/${cur.id}/folders/${folderId}` : `/hauls/${cur.id}`, { method: 'PUT', body: { name: v } });
+        await api(inFolder ? `/hauls/${cur.id}/folders/${folderId}` : `/hauls/${cur.id}`, { method: 'PUT', body: { name: v } });
         if (inFolder) here.name = v; else cur.name = v;
       } catch { title.value = old; }
     });
 
     const del = inFolder
       ? twice(t('folderDelete'), async () => {
-        try { await A().api(`/hauls/${cur.id}/folders/${folderId}`, { method: 'DELETE' }); await openHaul(cur.id); } catch { toast(t('errGeneric')); }
+        try { await api(`/hauls/${cur.id}/folders/${folderId}`, { method: 'DELETE' }); await openHaul(cur.id); } catch { toast(t('errGeneric')); }
       })
-      : twice(t('haulDelete'), async () => {
-        try { await A().api(`/hauls/${cur.id}`, { method: 'DELETE' }); cur = null; show(); } catch { toast(t('errGeneric')); }
-      });
-    const share = inFolder ? null : el('button', { class: 'btn ghost', type: 'button', onclick: () => shareModal(cur) });
+      : cur.owner === false
+        ? twice(t('haulLeave'), async () => {
+          try { await api(`/hauls/${cur.id}/members/me`, { method: 'DELETE' }); cur = null; stopPolling(); toast(t('haulLeaveDone')); show(); } catch { toast(t('errGeneric')); }
+        })
+        : twice(t('haulDelete'), async () => {
+          try { await api(`/hauls/${cur.id}`, { method: 'DELETE' }); cur = null; stopPolling(); show(); } catch { toast(t('errGeneric')); }
+        });
+    const share = inFolder || cur.owner === false ? null : el('button', { class: 'btn ghost', type: 'button', onclick: () => shareModal(cur) });
     if (share) share.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 15V4m0 0L8 8m4-4 4 4M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     if (share) share.append(document.createTextNode(` ${t('shareBtn')}`));
 
@@ -533,9 +666,19 @@ const Hauls = (() => {
       el('div', { class: 'haul-bar' }, back, el('span', { class: 'haul-actions' }, share, del)),
       title,
       el('p', { class: 'haul-total', id: 'haulTotal' }),
+      el('p', { class: 'haul-collab', id: 'haulCollab', hidden: true }),
       wrap,
       el('div', { class: 'haul-body', id: 'haulBody' }));
     paintBody();
+    startPolling();
+  }
+
+  // Quién más trabaja en este haul
+  function paintCollab() {
+    const el = $('haulCollab');
+    if (!el || !cur) return;
+    el.hidden = (cur.members || []).length < 2;
+    el.textContent = el.hidden ? '' : t('haulCollab', { names: cur.members.map((m) => `${m.nick}${m.me ? ` ${t('shareYou')}` : ''}`).join(', ') });
   }
 
   function paintBody() {
@@ -548,6 +691,7 @@ const Hauls = (() => {
     const scope = folderId ? cur.items.filter((x) => x.f === folderId) : cur.items;
     const { total, unpriced } = totals(scope);
     $('haulTotal').replaceChildren(summary(scope.length, total, unpriced));
+    paintCollab();
 
     if (query.trim()) {
       const results = searchAll(query);
@@ -585,7 +729,7 @@ const Hauls = (() => {
     const sh = shared;
     if (!sh.data) {
       root().replaceChildren(spinner());
-      try { sh.data = await A().api(`/shared/${sh.sid}`); } catch { sh.data = { gone: true }; }
+      try { sh.data = await api(`/shared/${sh.sid}`); } catch { sh.data = { gone: true }; }
     }
     const close = () => { shared = null; try { history.replaceState(null, '', location.pathname); } catch { /* sin historial */ } show(); };
     if (sh.data.gone) {
@@ -600,7 +744,7 @@ const Hauls = (() => {
       if (!A().isLoggedIn()) return A().login(() => save.click());
       save.disabled = true;
       try {
-        const r = await A().api(`/shared/${sh.sid}/copy`, { method: 'POST' });
+        const r = await api(`/shared/${sh.sid}/copy`, { method: 'POST' });
         toast(t('sharedSaved'));
         shared = null;
         try { history.replaceState(null, '', location.pathname); } catch { /* sin historial */ }
@@ -645,7 +789,7 @@ const Hauls = (() => {
     if (!cur || !pending.size) return;
     const items = [...pending.values()];
     pending.clear();
-    try { await A().api(`/hauls/${cur.id}/items`, { method: 'POST', body: { items, update: true } }); } catch { /* se reintentará la próxima vez */ }
+    try { await api(`/hauls/${cur.id}/items`, { method: 'POST', body: { items, update: true } }); } catch { /* se reintentará la próxima vez */ }
     if ($('haulTotal')) {
       const scope = folderId ? cur.items.filter((x) => x.f === folderId) : cur.items;
       const { total, unpriced } = totals(scope);
@@ -658,12 +802,45 @@ const Hauls = (() => {
     list = null;
     cur = null;
     folderId = null;
+    stopPolling();
     if (typeof activeTool !== 'undefined' && activeTool === 'hauls') show();
   }
 
-  // Enlace compartido: ?haul=ID
+  async function joinInvite(code) {
+    const { el, openModal, heading, closeBtn, errBox, showErr } = U();
+    let info;
+    try { info = await A().api(`/invite/${code}`); } catch { return toast(t('inviteGone')); }
+    const err = errBox();
+    const nick = el('input', { type: 'text', maxlength: '24', placeholder: t('inviteNick'), 'aria-label': t('inviteNick') });
+    nick.value = A().nick();
+    const go = el('button', { class: 'btn modal-btn', type: 'submit', text: t('inviteJoin') });
+    const form = el('form', { class: 'modal-form', novalidate: true }, el('div', { class: 'field' }, nick), err, go);
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!A().isLoggedIn()) return A().login(() => joinInvite(code));
+      go.disabled = true;
+      try {
+        const r = await api(`/invite/${code}/join`, { method: 'POST', body: { nick: nick.value.trim() } });
+        U().closeModal();
+        try { history.replaceState(null, '', location.pathname); } catch { /* sin historial */ }
+        cur = null;
+        pendingOpen = r.id;
+        if (typeof setDrawer === 'function') setDrawer(true);
+        showTool('hauls');
+        toast(t('inviteJoined', { name: r.name }));
+      } catch (ex) {
+        showErr(err, ex.code === 'max_editors' ? t('inviteMax') : t('inviteGone'));
+        go.disabled = false;
+      }
+    });
+    openModal(closeBtn(), ...heading(t('inviteTitle', { name: info.name }), t('inviteText')), form);
+  }
+
+  // Enlaces compartidos: ?haul=ID (solo ver) y ?edit=CODIGO (invitación a editar)
   function start() {
     if (!CONFIG.accountApi) return;
+    const code = new URLSearchParams(location.search).get('edit');
+    if (code && /^[\w-]{8,24}$/.test(code)) joinInvite(code);
     const sid = new URLSearchParams(location.search).get('haul');
     if (sid && /^[\w-]{8,24}$/.test(sid)) showShared(sid);
   }
