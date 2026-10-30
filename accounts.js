@@ -316,7 +316,10 @@ const Accounts = (() => {
     return [...names];
   }
 
+  let sourcePicked = false; // el usuario ya eligió a mano
+
   function pickSource(value) {
+    sourcePicked = true;
     $('sourceMenu').hidden = true;
     $('sourceBtn').setAttribute('aria-expanded', 'false');
     if (state.source === value) return;
@@ -410,6 +413,14 @@ const Accounts = (() => {
       } catch { /* esa hoja no se pudo cargar: se sigue con las demás */ }
     }
     setImported([...byLink.values()]);
+    // Por defecto se ven todas mis spreadsheets (la verificada primero), hasta que se elija otra cosa
+    if (!sourcePicked && byLink.size && state.source === 'orig') {
+      state.source = 'all';
+      state.category = '';
+      state.tab = '';
+      renderChips();
+      applyFilters();
+    }
     paintAccount();
   }
 
@@ -417,6 +428,7 @@ const Accounts = (() => {
     token = null;
     me = null;
     store.set(null);
+    sourcePicked = false;
     state.source = 'orig';
     state.category = '';
     state.tab = '';
@@ -784,6 +796,12 @@ const Accounts = (() => {
     return { items, limited, network, capped: goodsCount >= GOODS_MAX_PER_VISIT };
   }
 
+  // Consulta puntual de un producto (para los enlaces escritos en los buscadores)
+  async function lookup(r) {
+    const res = await resolveDirect([r]);
+    return res.items[0];
+  }
+
   const watching = new Map(); // tarjeta → producto
   const lazy = { queue: new Set(), timer: 0, backoff: 0, tries: new Map() };
   const seenIo = new IntersectionObserver((entries) => {
@@ -915,7 +933,7 @@ const Accounts = (() => {
   }
 
   return {
-    start, watch, tabNames,
+    start, watch, tabNames, lookup,
     api: call, isLoggedIn: () => !!me, login: (after) => loginModal(after),
     ui: { el, openModal, closeModal, heading, closeBtn, errBox, showErr },
   };

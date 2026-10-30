@@ -525,6 +525,9 @@ const Hauls = (() => {
   /* ---------- Dentro de un haul o de una subcarpeta ---------- */
   // Búsqueda en todas las spreadsheets (la verificada y las importadas), sin importar cuál esté elegida en la lista
   function searchAll(q) {
+    // Un enlace de USFans, Weidian, Taobao o 1688 enseña ese producto
+    const linked = linkLookup(q, () => { if (query === q) paintBody(); });
+    if (linked) return [linked];
     const tokens = norm(q).split(/\s+/).filter(Boolean);
     if (!tokens.length) return [];
     const seen = new Set();

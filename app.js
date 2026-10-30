@@ -66,6 +66,7 @@ const I18N = {
     sortName: 'Nombre A–Z',
     loading: 'Cargando productos…',
     count: '{n} productos',
+    count1: '1 producto',
     countOf: '{n} de {total} productos',
     sample: ' · datos de ejemplo',
     loadError: 'No se pudieron cargar los productos.',
@@ -84,6 +85,8 @@ const I18N = {
     urlNoConvert: 'No se puede convertir ese enlace a USFans (el ID del producto está cifrado). Búscalo en USFans.',
     tabUsfans: 'USFans',
     tabProduct: 'Producto',
+    linkLooking: 'Buscando en USFans…',
+    linkUnavailable: 'No disponible en USFans',
     goHome: '← Registro',
     openBrowser: 'Abrir en navegador',
     hint: 'Haz clic derecho en un producto para ver más opciones. Si algo no carga o no puedes pagar, ábrela en tu navegador con el icono de la barra de direcciones.',
@@ -147,6 +150,7 @@ const I18N = {
     sortName: 'Name A–Z',
     loading: 'Loading products…',
     count: '{n} products',
+    count1: '1 product',
     countOf: '{n} of {total} products',
     sample: ' · sample data',
     loadError: 'Products could not be loaded.',
@@ -165,6 +169,8 @@ const I18N = {
     urlNoConvert: 'That link can’t be converted to USFans (the product ID is encrypted). Look it up on USFans.',
     tabUsfans: 'USFans',
     tabProduct: 'Product',
+    linkLooking: 'Looking it up on USFans…',
+    linkUnavailable: 'Not available on USFans',
     goHome: '← Sign up',
     openBrowser: 'Open in browser',
     hint: 'Right-click a product for more options. If something doesn’t load or you can’t pay, open the page in your browser with the icon in the address bar.',
@@ -384,7 +390,61 @@ const tabMatch = (p) => (state.source === 'all'
   ? Object.values(p.imps || {}).some((a) => a.includes(state.tab))
   : (p.imps?.[state.source] || []).includes(state.tab));
 
+// Si lo escrito en el buscador es un enlace de USFans, Weidian, Taobao o 1688, se enseña ese producto (con su nombre, precio y foto de USFans)
+const linkCache = new Map();
+
+function linkRefOf(text) {
+  const raw = String(text || '').trim();
+  if (!raw || /\s/.test(raw) || !/[./]/.test(raw)) return null;
+  const res = resolveTypedUrl(raw);
+  if (!res.url) return null;
+  const r = parseProductLink(res.url);
+  return r && (!r.encrypted || r.fromUsfans) ? r : null;
+}
+
+function linkLookup(text, onUpdate) {
+  const r = linkRefOf(text);
+  if (!r) return null;
+  const key = `${r.platform}/${r.id}`;
+  // Si el producto ya está en alguna de mis hojas, se enseña ese (primero la verificada)
+  const known = state.all.find((p) => productKeyOf(p.link) === key);
+  if (known) return known;
+  let p = linkCache.get(key);
+  if (!p) {
+    p = {
+      id: `L${key}`, name: t('linkLooking'), unnamed: true, link: `https://usfans.com/product/${key}`, image: '', priceRaw: '', price: NaN,
+      categories: [], sections: [], src: 0, done: false, _n: '',
+    };
+    linkCache.set(key, p);
+  }
+  p.onUpdate = onUpdate;
+  if (!p.fetching && !p.done && window.Accounts?.lookup) {
+    p.fetching = true;
+    window.Accounts.lookup(r).then((g) => {
+      p.fetching = false;
+      if (g && g.status === 'ok') {
+        Object.assign(p, { name: g.n || p.name, unnamed: false, image: g.i || '', priceRaw: g.p || '', price: parsePrice(g.p), done: true });
+      } else if (g && g.status === 'gone') {
+        Object.assign(p, { name: t('linkUnavailable'), done: true });
+      }
+      p.onUpdate?.();
+    }, () => { p.fetching = false; });
+  }
+  return p;
+}
+
 function applyFilters() {
+  const linked = linkLookup(state.query, () => { if (linkRefOf(state.query)) applyFilters(); });
+  if (linked) {
+    state.scopeTotal = 1;
+    state.filtered = [linked];
+    state.shown = 0;
+    els.grid.replaceChildren();
+    els.list.scrollTop = 0;
+    renderCount();
+    renderMore();
+    return;
+  }
   const tokens = norm(state.query).split(/\s+/).filter(Boolean);
   const scope = state.all.filter(inSource);
   state.scopeTotal = scope.length;
@@ -440,7 +500,7 @@ function renderCount() {
   const n = state.filtered.length;
   const total = state.scopeTotal ?? state.all.length;
   const fmt = (x) => x.toLocaleString(locale());
-  els.count.textContent = (n === total ? t('count', { n: fmt(n) }) : t('countOf', { n: fmt(n), total: fmt(total) }))
+  els.count.textContent = (n === total ? (n === 1 ? t('count1') : t('count', { n: fmt(n) })) : t('countOf', { n: fmt(n), total: fmt(total) }))
     + (CONFIG.dataUrl ? '' : t('sample'));
 }
 
@@ -855,7 +915,9 @@ function openProduct(p, { newTab = false, focus = false } = {}) {
 
 const productFrom = (e) => {
   const card = e.target.closest('.card');
-  return card ? state.all[+card.dataset.id] : null;
+  if (!card) return null;
+  const id = card.dataset.id;
+  return state.all[+id] ?? state.filtered.find((p) => String(p.id) === id) ?? null;
 };
 
 function onProductClick(e) {
