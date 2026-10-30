@@ -1306,3 +1306,9 @@ body.modal-open { overflow: hidden; }
 .urlbar:focus-within { background: var(--surface); box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 40%, transparent), 0 0 0 .5px var(--hairline); }
 .people-ico { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; color: var(--accent); font-size: 11.5px; font-weight: 500; vertical-align: -2px; }
 .haul-people { color: var(--accent); }
+
+/* iPhone/iPad: Safari amplía la página al tocar un campo de texto con letra menor de 16 px y luego no la devuelve a su tamaño.
+   Con 16 px o más no hace zoom. */
+@media (max-width: 820px), (pointer: coarse) {
+  #search, #haulSearch, .qc-form input, .field input:not(.code-input):not([type="checkbox"]):not([type="radio"]) { font-size: 16px !important; }
+}
