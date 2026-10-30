@@ -466,10 +466,10 @@ const Hauls = (() => {
 
   /* ---------- Sincronización entre colaboradores ---------- */
   // Los cambios no se mandan "enteros": cada acción (añadir, quitar, mover…) es una operación suelta que el servidor aplica sobre
-  // los datos de todos. Aquí solo se pregunta cada 15 s si la revisión del haul ha cambiado y, si es así, se descarga el estado actual,
+  // los datos de todos. Aquí solo se pregunta cada minuto si la revisión del haul ha cambiado y, si es así, se descarga el estado actual,
   // que ya incluye lo de todos.
   let pollTimer = 0;
-  const POLL_MS = 15000;
+  const POLL_MS = 60000;
 
   function stopPolling() { clearInterval(pollTimer); pollTimer = 0; }
 
