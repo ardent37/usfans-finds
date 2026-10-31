@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://usfans.saltychina.com/</loc>
+    <loc>https://usfans.bio/</loc>
     <lastmod>2026-10-12</lastmod>
-    <xhtml:link rel="alternate" hreflang="es" href="https://usfans.saltychina.com/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://usfans.saltychina.com/en/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://usfans.saltychina.com/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://usfans.bio/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://usfans.bio/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://usfans.bio/"/>
   </url>
   <url>
-    <loc>https://usfans.saltychina.com/en/</loc>
+    <loc>https://usfans.bio/en/</loc>
     <lastmod>2026-10-12</lastmod>
-    <xhtml:link rel="alternate" hreflang="es" href="https://usfans.saltychina.com/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://usfans.saltychina.com/en/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://usfans.saltychina.com/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://usfans.bio/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://usfans.bio/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://usfans.bio/"/>
   </url>
 </urlset>
