@@ -1606,6 +1606,10 @@ function setupFold() {
   const fold = $('fold');
   const list = els.list;
   list.prepend(fold);
+  const fade = document.createElement('div'); // borde superior: los productos se difuminan al llegar al color sólido
+  fade.className = 'edge-fade';
+  fade.setAttribute('aria-hidden', 'true');
+  list.prepend(fade);
   fold.firstElementChild.prepend(document.querySelector('#tool-products > .search-wrap')); // el buscador también se oculta con el bloque
   let last = 0;
   let dir = 0;

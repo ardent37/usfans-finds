@@ -1424,7 +1424,21 @@ body.modal-open { overflow: hidden; }
   }
   .fold.is-floating { box-shadow: 0 1px 0 var(--hairline), 0 10px 22px -14px rgba(0, 0, 0, .3); }
   .fold.is-hidden { transform: translateY(-100%); pointer-events: none; box-shadow: none; }
-  #list { overflow-anchor: none; padding-top: 0; margin-top: 8px; }
+  #list { overflow-anchor: none; padding-top: 0; margin-top: 4px; }
+  .edge-fade { position: sticky; top: 0; height: 0; z-index: 5; pointer-events: none; margin: 0 calc(-1 * var(--gutter)); }
+  .edge-fade::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 34px;
+    background: linear-gradient(to bottom, var(--canvas) 0%, color-mix(in srgb, var(--canvas) 70%, transparent) 38%, transparent 100%);
+    -webkit-backdrop-filter: blur(10px) saturate(1.4);
+    backdrop-filter: blur(10px) saturate(1.4);
+    -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
+  }
   /* La separación con el buscador es fondo sólido: queda fuera de la zona que se desplaza */
   #tool-products .search-wrap { margin-bottom: 10px; }
 }
