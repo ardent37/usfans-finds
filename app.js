@@ -565,6 +565,14 @@ function cardFor(p) {
     meta.appendChild(pr);
   }
 
+  if (!p.src && typeof p.id === 'number') {   // viene de mi spreadsheet: lleva el check de verificado
+    const v = document.createElement('span');
+    v.className = 'card-verified';
+    v.title = t('verifiedProducts');
+    v.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="4.6" y="4.6" width="14.8" height="14.8" rx="3.2" fill="#0095f6"/><rect x="4.6" y="4.6" width="14.8" height="14.8" rx="3.2" fill="#0095f6" transform="rotate(45 12 12)"/><path d="m8.4 12.3 2.5 2.5 4.8-5" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    thumb.appendChild(v);
+  }
+
   a.append(thumb, meta);
   if (p.src === 1 && !p.done) window.Accounts?.watch(a, p);   // importado: la foto y el precio se piden al verlo
   return a;
