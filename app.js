@@ -27,15 +27,15 @@ const CONFIG = {
   // Las que no estén aquí salen tal cual. Se compara por el principio del nombre,
   // así "Trending Now 冬" y "Trending Now 夏" van a "Tendencias". El orden de esta lista es el de los botones.
   categoryLabels: [
-    ['Trending Now', 'Tendencias', 'Trending'],
-    ['Update', 'Novedades', 'New in'],
-    ['SHOES', 'Calzado', 'Shoes'],
-    ['T shirt and shorts', 'Camisetas y shorts', 'T-shirts & shorts'],
-    ['Hoodies and Pants', 'Sudaderas y pantalones', 'Hoodies & pants'],
-    ['Coats and Jackets', 'Abrigos y chaquetas', 'Coats & jackets'],
-    ['Accessories', 'Accesorios', 'Accessories'],
-    ['Electronic products', 'Electrónica', 'Electronics'],
-    ["Women's Spreadsheet", 'Mujer', 'Women'],
+    ['Trending Now', 'Tendencias', 'Trending', 'Na czasie'],
+    ['Update', 'Novedades', 'New in', 'Nowości'],
+    ['SHOES', 'Calzado', 'Shoes', 'Obuwie'],
+    ['T shirt and shorts', 'Camisetas y shorts', 'T-shirts & shorts', 'Koszulki i szorty'],
+    ['Hoodies and Pants', 'Sudaderas y pantalones', 'Hoodies & pants', 'Bluzy i spodnie'],
+    ['Coats and Jackets', 'Abrigos y chaquetas', 'Coats & jackets', 'Płaszcze i kurtki'],
+    ['Accessories', 'Accesorios', 'Accessories', 'Akcesoria'],
+    ['Electronic products', 'Electrónica', 'Electronics', 'Elektronika'],
+    ["Women's Spreadsheet", 'Mujer', 'Women', 'Damskie'],
   ],
 
 
@@ -244,14 +244,113 @@ const I18N = {
     prevPhoto: 'Previous photo',
     nextPhoto: 'Next photo',
   },
+  pl: {
+    language: 'Język',
+    products: 'Produkty',
+    search: 'Szukaj dowolnego produktu',
+    searchLabel: 'Szukaj produktów',
+    all: 'Wszystko',
+    categories: 'Kategorie',
+    prevCats: 'Poprzednie kategorie',
+    nextCats: 'Więcej kategorii',
+    sortLabel: 'Sortuj',
+    sortDefault: 'Polecane',
+    sortPriceAsc: 'Cena ↑',
+    sortPriceDesc: 'Cena ↓',
+    sortName: 'Nazwa A–Z',
+    loading: 'Wczytywanie produktów…',
+    count: '{n} produktów',
+    count1: '1 produkt',
+    countOf: '{n} z {total} produktów',
+    sample: ' · dane przykładowe',
+    loadError: 'Nie udało się wczytać produktów.',
+    emptyTitle: 'Brak wyników',
+    emptyText: 'Spróbuj innego słowa lub usuń filtr kategorii.',
+    hidePanel: 'Ukryj panel',
+    showProducts: 'Pokaż produkty',
+    themeToDark: 'Przełącz na ciemny motyw',
+    themeToLight: 'Przełącz na jasny motyw',
+    tabsLabel: 'Karty',
+    newTab: 'Nowa karta',
+    closeTab: 'Zamknij kartę',
+    homeTitle: 'Zarejestruj się w USFans',
+    urlPlaceholder: 'Wpisz lub wklej link z USFans, Weidian, Taobao lub 1688',
+    urlOnlyUsfans: 'Można otwierać tylko linki z USFans, Weidian, Taobao lub 1688.',
+    urlNoConvert: 'Tego linku nie da się zamienić na USFans (identyfikator produktu jest zaszyfrowany). Wyszukaj go w USFans.',
+    tabUsfans: 'USFans',
+    tabProduct: 'Produkt',
+    openInApp: 'Otwórz w aplikacji USFans',
+    moreOptions: 'Więcej opcji',
+    offerTitle: '40% zniżki na wysyłkę',
+    offerText: 'Zarejestruj się teraz w USFans z naszym kodem i odbierz kupon na 40% zniżki na wysyłkę.',
+    offerAccept: 'Odbierz kupon',
+    offerLater: 'Nie teraz',
+    offerBack: 'Wróć do narzędzi',
+    offerRegTitle: 'Rejestracja w USFans',
+    offerBtnTitle: 'Kupon 40% na wysyłkę',
+    colsLabel: 'Produktów w rzędzie',
+    cols2: '2 kolumny',
+    cols3: '3 kolumny',
+    cols4: '4 kolumny',
+    linkLooking: 'Szukam w USFans…',
+    linkUnavailable: 'Niedostępny w USFans',
+    goHome: '← Rejestracja',
+    openBrowser: 'Otwórz w przeglądarce',
+    hint: 'Kliknij produkt prawym przyciskiem, aby zobaczyć więcej opcji. Jeśli coś się nie wczytuje lub nie możesz zapłacić, otwórz stronę w przeglądarce ikoną na pasku adresu.',
+    openHere: 'Otwórz tutaj',
+    openNewTab: 'Otwórz w nowej karcie',
+    openNewTabFocus: 'Otwórz w nowej karcie i przejdź do niej',
+    openInBrowser: 'Otwórz w przeglądarce',
+    copyLink: 'Kopiuj link',
+    kbdCtrlClick: 'Ctrl+klik',
+    reload: 'Odśwież',
+    duplicate: 'Duplikuj',
+    closeOthers: 'Zamknij pozostałe karty',
+    kbdMiddleClick: 'Środkowy przycisk',
+    toolQc: 'Zdjęcia QC',
+    qcPlaceholder: 'Wklej link do produktu',
+    qcSearch: 'Znajdź QC',
+    qcHelp: 'Wklej link z Taobao, Weidian, 1688 lub dowolnego agenta. Zdjęcia QC pochodzą z FinderQC.',
+    qcOpenSource: 'Otwórz w FinderQC ↗',
+    qcShowing: 'Zdjęcia QC z FinderQC · {store} {id}',
+    qcInvalidTitle: 'Nie rozpoznajemy tego linku',
+    qcInvalidText: 'Spróbuj z linkiem do produktu z Taobao, Weidian, 1688 lub od agenta, np. USFans, CNFans albo KakoBuy.',
+    qcEncryptedTitle: 'Ten link nie zawiera prawdziwego identyfikatora produktu',
+    qcUsfansTitle: 'Zdjęcia QC z USFans · {n}',
+    qcUsfansNote: 'Ten link zawiera kod USFans, więc możemy pokazać tylko zdjęcia QC, które USFans ma dla tego produktu.',
+    qcUsfansEmptyTitle: 'USFans nie ma jeszcze zdjęć QC tego produktu',
+    qcUsfansEmptyText: 'Nikt jeszcze nie zamówił go przez USFans. Mając link z numerycznym ID z Taobao (id=1234567890), możemy szukać u wszystkich agentów.',
+    qcLoading: 'Szukam zdjęć QC…',
+    qcErrorTitle: 'Nie udało się sprawdzić',
+    qcErrorText: 'Spróbuj ponownie za kilka sekund.',
+    qcEncryptedText: 'Taobao i niektórzy agenci ukrywają ID za zaszyfrowanym kodem, którego nie da się odczytać z zewnątrz. Otwórz produkt na Taobao i wklej link z numerycznym ID (id=1234567890).',
+    qcOpenProduct: 'Otwórz produkt',
+    seoTitle: 'USFans+ | Produkty, Spreadsheety, QC',
+    seoDescription: 'Przeszukuj tysiące produktów z Taobao, Weidian i 1688, sprawdzaj zdjęcia QC i kupuj z USFans bez wychodzenia ze strony.',
+    seoH1: 'Agent zakupowy w Chinach: szukaj produktów, oglądaj zdjęcia QC i kupuj z USFans',
+    viewQc: 'Zobacz zdjęcia QC',
+    coachOpenTitle: '← Dotknij karty',
+    coachOpenText: 'aby zobaczyć produkty i narzędzia.',
+    backToUsfans: 'Wróć do USFans',
+    coachSkip: 'Pomiń',
+    spreadsheet: 'Spreadsheet',
+    resizePanel: 'Przeciągnij, aby zmienić rozmiar (dwuklik: domyślny rozmiar)',
+    expandPanel: 'Rozwiń panel',
+    restorePanel: 'Pokaż ponownie USFans',
+    close: 'Zamknij',
+    prevPhoto: 'Poprzednie zdjęcie',
+    nextPhoto: 'Następne zdjęcie',
+  },
 };
 
 // Lo fija el <head> (idioma guardado o el del navegador); se cambia con el selector ES | EN
-let lang = document.documentElement.lang === 'en' ? 'en' : 'es';
-const locale = () => (lang === 'en' ? 'en-GB' : 'es-ES');
+let lang = ['en', 'pl'].includes(document.documentElement.lang) ? document.documentElement.lang : 'es';
+const LANG_PATH = { es: '/', en: '/en/', pl: '/pl/' };
+const LANG_LOCALE = { es: 'es-ES', en: 'en-GB', pl: 'pl-PL' };
+const locale = () => LANG_LOCALE[lang];
 
 function t(key, vars = {}) {
-  const text = I18N[lang][key] ?? I18N.es[key] ?? key;
+  const text = I18N[lang][key] ?? I18N.en[key] ?? I18N.es[key] ?? key;
   return text.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
 }
 
@@ -368,7 +467,7 @@ function categoryKey(raw) {
 
 function categoryLabel(key) {
   const hit = CONFIG.categoryLabels.find(([from]) => from === key);
-  return hit ? (lang === 'en' ? hit[2] : hit[1]) : key;
+  return hit ? (lang === 'es' ? hit[1] : lang === 'pl' ? (hit[3] ?? hit[2]) : hit[2]) : key;
 }
 
 function categoryNames(key) {
@@ -1545,7 +1644,7 @@ function rerenderQc() {
 // Cabecera de la página en el idioma activo. Cada idioma tiene su dirección (/ y /en/), y el selector
 // cambia los textos al instante y actualiza también la dirección.
 function applySeoMeta() {
-  const url = `https://usfans.bio${lang === 'en' ? '/en/' : '/'}`;
+  const url = `https://usfans.bio${LANG_PATH[lang]}`;
   const set = (sel, attr, val) => document.querySelector(sel)?.setAttribute(attr, val);
   document.title = t('seoTitle');
   set('meta[name="description"]', 'content', t('seoDescription'));
@@ -1553,7 +1652,7 @@ function applySeoMeta() {
   set('meta[property="og:description"]', 'content', t('seoDescription'));
   set('meta[name="twitter:title"]', 'content', t('seoTitle'));
   set('meta[name="twitter:description"]', 'content', t('seoDescription'));
-  set('meta[property="og:locale"]', 'content', lang === 'en' ? 'en_GB' : 'es_ES');
+  set('meta[property="og:locale"]', 'content', lang === 'en' ? 'en_GB' : lang === 'pl' ? 'pl_PL' : 'es_ES');
   set('link[rel="canonical"]', 'href', url);
   set('meta[property="og:url"]', 'content', url);
   const h1 = document.querySelector('.sr-h1');
@@ -1586,7 +1685,7 @@ function setLanguage(next) {
     // Sin almacenamiento (modo privado): el idioma dura hasta recargar
   }
   try {
-    history.replaceState(null, '', next === 'en' ? '/en/' : '/');
+    history.replaceState(null, '', LANG_PATH[next]);
   } catch (e) {
     // sin historial (archivo local): se queda la misma dirección
   }
