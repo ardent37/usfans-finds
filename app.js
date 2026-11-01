@@ -1606,6 +1606,7 @@ function setupFold() {
   const fold = $('fold');
   const list = els.list;
   list.prepend(fold);
+  fold.firstElementChild.prepend(document.querySelector('#tool-products > .search-wrap')); // el buscador también se oculta con el bloque
   let last = 0;
   let dir = 0;
   let anchor = 0;

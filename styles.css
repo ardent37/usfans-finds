@@ -1424,7 +1424,7 @@ body.modal-open { overflow: hidden; }
   }
   .fold.is-floating { box-shadow: 0 1px 0 var(--hairline), 0 10px 22px -14px rgba(0, 0, 0, .3); }
   .fold.is-hidden { transform: translateY(-100%); pointer-events: none; box-shadow: none; }
-  #list { overflow-anchor: none; padding-top: 0; }
+  #list { overflow-anchor: none; padding-top: 0; margin-top: 8px; }
   /* La separación con el buscador es fondo sólido: queda fuera de la zona que se desplaza */
   #tool-products .search-wrap { margin-bottom: 10px; }
 }
