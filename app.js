@@ -1620,28 +1620,36 @@ function setupFold() {
   list.prepend(fade);
   fold.firstElementChild.prepend(document.querySelector('#tool-products > .search-wrap')); // el buscador también se oculta con el bloque
   let last = 0;
+  let lastT = 0;
   let dir = 0;
   let anchor = 0;
+  let speed = 0; // px/ms hacia arriba, suavizada
   let hidden = false;
   const setHidden = (on) => {
     if (hidden === on) return;
     hidden = on;
     fold.classList.toggle('is-hidden', on);
   };
-  list.addEventListener('scroll', () => {
+  list.addEventListener('scroll', (e) => {
     const max = Math.max(0, list.scrollHeight - list.clientHeight);
     const y = Math.min(Math.max(0, list.scrollTop), max); // sin el rebote de iOS en los extremos
+    const now = e.timeStamp || performance.now();
+    const dt = Math.max(1, now - lastT);
     const d = y - last;
     if (d !== 0) {
       const nd = d > 0 ? 1 : -1;
-      if (nd !== dir) { dir = nd; anchor = last; } // el recorrido se cuenta desde el último cambio de dirección
+      if (nd !== dir) { dir = nd; anchor = last; speed = 0; } // el recorrido se cuenta desde el último cambio de dirección
+      const v = Math.abs(d) / dt;
+      speed = speed ? speed * 0.5 + v * 0.5 : v;
     }
     const travel = Math.abs(y - anchor);
     if (y <= 2) setHidden(false);
     else if (dir > 0 && travel > 14 && y > fold.offsetHeight) setHidden(true);
-    else if (dir < 0 && travel > 14) setHidden(false);
+    // Solo reaparece con un gesto de subida rápido (≥ 0,7 px/ms ≈ 700 px/s): subir despacio para ver una fila de más no lo abre
+    else if (dir < 0 && travel > 40 && speed > 0.7) setHidden(false);
     fold.classList.toggle('is-floating', y > 2 && !hidden);
     last = y;
+    lastT = now;
   }, { passive: true });
 }
 
