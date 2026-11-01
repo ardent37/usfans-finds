@@ -555,7 +555,15 @@ function cardFor(p) {
   meta.className = 'meta';
   const name = document.createElement('span');
   name.className = 'name';
-  name.textContent = p.name;
+  if (!p.src && typeof p.id === 'number') {   // viene de mi spreadsheet: el check de verificado va antes del nombre
+    const v = document.createElement('span');
+    v.className = 'card-verified';
+    v.title = t('verifiedProducts');
+    v.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="4.6" y="4.6" width="14.8" height="14.8" rx="3.2" fill="#0095f6"/><rect x="4.6" y="4.6" width="14.8" height="14.8" rx="3.2" fill="#0095f6" transform="rotate(45 12 12)"/><path d="m8.4 12.3 2.5 2.5 4.8-5" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    name.append(v, p.name);
+  } else {
+    name.textContent = p.name;
+  }
   meta.appendChild(name);
   const price = formatPrice(p.priceRaw);
   if (price) {
@@ -563,14 +571,6 @@ function cardFor(p) {
     pr.className = 'price';
     pr.textContent = price;
     meta.appendChild(pr);
-  }
-
-  if (!p.src && typeof p.id === 'number') {   // viene de mi spreadsheet: lleva el check de verificado
-    const v = document.createElement('span');
-    v.className = 'card-verified';
-    v.title = t('verifiedProducts');
-    v.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="4.6" y="4.6" width="14.8" height="14.8" rx="3.2" fill="#0095f6"/><rect x="4.6" y="4.6" width="14.8" height="14.8" rx="3.2" fill="#0095f6" transform="rotate(45 12 12)"/><path d="m8.4 12.3 2.5 2.5 4.8-5" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    thumb.appendChild(v);
   }
 
   a.append(thumb, meta);
