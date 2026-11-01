@@ -1419,11 +1419,11 @@ body.modal-open { overflow: hidden; }
     margin: 0 calc(-1 * var(--gutter));
     padding: 0 var(--gutter) 2px;
     background: var(--canvas);
-    transition: transform .34s cubic-bezier(.32, .72, 0, 1), box-shadow .25s ease;
+    transition: transform .6s cubic-bezier(.22, .61, .36, 1), opacity .45s ease, box-shadow .4s ease;
     will-change: transform;
   }
   .fold.is-floating { box-shadow: 0 1px 0 var(--hairline), 0 10px 22px -14px rgba(0, 0, 0, .3); }
-  .fold.is-hidden { transform: translateY(-100%); pointer-events: none; box-shadow: none; }
+  .fold.is-hidden { transform: translateY(-100%); opacity: 0; pointer-events: none; box-shadow: none; }
   #list { overflow-anchor: none; padding-top: 0; margin-top: 4px; }
   .edge-fade { position: sticky; top: 0; height: 0; z-index: 5; pointer-events: none; margin: 0 calc(-1 * var(--gutter)); }
   .edge-fade::before {
