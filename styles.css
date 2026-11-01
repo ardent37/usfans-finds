@@ -1409,51 +1409,32 @@ body.modal-open { overflow: hidden; }
   }
 }
 
-/* Oferta de bienvenida: imagen con un balanceo suave y un destello que la cruza de vez en cuando */
-.offer-art {
-  position: relative;
-  margin: 0 0 14px;
-  overflow: hidden;
-  border-radius: 18px;
-  background: #fff;
-  aspect-ratio: 1000 / 484;
-  box-shadow: 0 0 0 .5px var(--hairline);
+/* Parte alta de la lista en móvil: vive dentro de la zona que se desplaza y se oculta/muestra solo con transform
+   (no cambia de tamaño, así que los productos no se mueven ni dan tirones) */
+@media (max-width: 820px) {
+  .fold {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    margin: -6px calc(-1 * var(--gutter)) 0;
+    padding: 6px var(--gutter) 2px;
+    background: var(--canvas);
+    transition: transform .34s cubic-bezier(.32, .72, 0, 1), box-shadow .25s ease;
+    will-change: transform;
+  }
+  .fold.is-floating { box-shadow: 0 1px 0 var(--hairline), 0 10px 22px -14px rgba(0, 0, 0, .3); }
+  .fold.is-hidden { transform: translateY(-100%); pointer-events: none; box-shadow: none; }
+  #list { overflow-anchor: none; }
 }
-.offer-art img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform-origin: 50% 100%;
-  animation: offerSway 5.5s ease-in-out infinite alternate;
-  will-change: transform;
-}
-.offer-art::after {
-  content: "";
-  position: absolute;
-  inset: -10% 0;
-  background: linear-gradient(105deg, transparent 36%, rgba(255, 255, 255, .6) 48%, rgba(255, 255, 255, .18) 55%, transparent 64%);
-  transform: translateX(-130%);
-  animation: offerShine 5s ease-in-out 1.2s infinite;
-  pointer-events: none;
-}
-@keyframes offerSway {
-  from { transform: scale(1.07) rotate(-1.1deg) translateY(1px); }
-  to { transform: scale(1.07) rotate(1.1deg) translateY(-3px); }
-}
-@keyframes offerShine {
-  0% { transform: translateX(-130%); }
-  38%, 100% { transform: translateX(130%); }
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  @media (max-width: 820px) {
+    .fold.is-floating {
+      background: color-mix(in srgb, var(--canvas) 84%, transparent);
+      -webkit-backdrop-filter: blur(18px) saturate(1.5);
+      backdrop-filter: blur(18px) saturate(1.5);
+    }
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .offer-art img, .offer-art::after { animation: none !important; }
-  .offer-art img { transform: scale(1.03); }
-}
-
-/* Parte alta de la lista que se pliega (solo móvil) */
-@media (max-width: 820px) {
-  .fold { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .34s var(--ease), opacity .26s ease; }
-  .fold-in { min-height: 0; overflow: hidden; }
-  #tool-products.head-folded .fold { grid-template-rows: 0fr; opacity: 0; pointer-events: none; }
-  #list { overflow-anchor: none; }
+  .fold { transition: none; }
 }

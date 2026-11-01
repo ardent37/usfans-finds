@@ -94,7 +94,6 @@ const I18N = {
     offerBack: 'Volver a las herramientas',
     offerRegTitle: 'Registro en USFans',
     offerBtnTitle: 'Cupón del 40 % en el envío',
-    offerArtAlt: '40 % en tu envío y más de 800 € en cupones',
     linkLooking: 'Buscando en USFans…',
     linkUnavailable: 'No disponible en USFans',
     goHome: '← Registro',
@@ -188,7 +187,6 @@ const I18N = {
     offerBack: 'Back to the tools',
     offerRegTitle: 'Sign up to USFans',
     offerBtnTitle: '40% shipping coupon',
-    offerArtAlt: '40% off your shipping plus over €800 in coupons',
     linkLooking: 'Looking it up on USFans…',
     linkUnavailable: 'Not available on USFans',
     goHome: '← Sign up',
@@ -1592,27 +1590,37 @@ function setLanguage(next) {
 }
 
 /* ---------- Arranque ---------- */
-/* ---------- Móvil: la parte alta de la lista se pliega al bajar y reaparece al subir ---------- */
-// Se queda siempre el buscador; el origen, las categorías, el contador y el orden se ocultan al hacer scroll hacia abajo
-// y vuelven en cuanto se sube (o al llegar arriba del todo), para ganar sitio para los productos.
+/* ---------- Móvil: la parte alta de la lista se oculta al bajar y reaparece al subir ---------- */
+// Es el patrón de las apps profesionales (Safari, Instagram, Airbnb…): la zona va DENTRO de lo que se desplaza, así que al bajar
+// se va con el contenido sin mover nada; al subir un poco se desliza de vuelta por encima, con un fondo translúcido.
+// Solo se anima transform (no la altura), por eso no hay tirones. El buscador se queda siempre fijo arriba.
 function setupFold() {
-  const tool = $('tool-products');
+  const fold = $('fold');
   const list = els.list;
+  list.prepend(fold);
   let last = 0;
-  let lockUntil = 0;
-  const fold = (on) => {
-    if (tool.classList.contains('head-folded') === on) return;
-    tool.classList.toggle('head-folded', on);
-    lockUntil = performance.now() + 380; // el cambio de altura mueve el scroll: se ignora mientras dura la animación
+  let dir = 0;
+  let anchor = 0;
+  let hidden = false;
+  const setHidden = (on) => {
+    if (hidden === on) return;
+    hidden = on;
+    fold.classList.toggle('is-hidden', on);
   };
   list.addEventListener('scroll', () => {
-    const y = list.scrollTop;
-    if (performance.now() < lockUntil) { last = y; return; }
-    const dy = y - last;
-    if (y <= 24) fold(false);
-    else if (dy > 10 && y > 100) fold(true);
-    else if (dy < -10) fold(false);
-    if (Math.abs(dy) > 10 || y <= 24) last = y;
+    const max = Math.max(0, list.scrollHeight - list.clientHeight);
+    const y = Math.min(Math.max(0, list.scrollTop), max); // sin el rebote de iOS en los extremos
+    const d = y - last;
+    if (d !== 0) {
+      const nd = d > 0 ? 1 : -1;
+      if (nd !== dir) { dir = nd; anchor = last; } // el recorrido se cuenta desde el último cambio de dirección
+    }
+    const travel = Math.abs(y - anchor);
+    if (y <= 2) setHidden(false);
+    else if (dir > 0 && travel > 14 && y > fold.offsetHeight) setHidden(true);
+    else if (dir < 0 && travel > 14) setHidden(false);
+    fold.classList.toggle('is-floating', y > 2 && !hidden);
+    last = y;
   }, { passive: true });
 }
 
