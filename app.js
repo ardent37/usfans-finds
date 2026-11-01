@@ -94,6 +94,7 @@ const I18N = {
     offerBack: 'Volver a las herramientas',
     offerRegTitle: 'Registro en USFans',
     offerBtnTitle: 'Cupón del 40 % en el envío',
+    offerArtAlt: '40 % en tu envío y más de 800 € en cupones',
     linkLooking: 'Buscando en USFans…',
     linkUnavailable: 'No disponible en USFans',
     goHome: '← Registro',
@@ -187,6 +188,7 @@ const I18N = {
     offerBack: 'Back to the tools',
     offerRegTitle: 'Sign up to USFans',
     offerBtnTitle: '40% shipping coupon',
+    offerArtAlt: '40% off your shipping plus over €800 in coupons',
     linkLooking: 'Looking it up on USFans…',
     linkUnavailable: 'Not available on USFans',
     goHome: '← Sign up',
@@ -1590,6 +1592,30 @@ function setLanguage(next) {
 }
 
 /* ---------- Arranque ---------- */
+/* ---------- Móvil: la parte alta de la lista se pliega al bajar y reaparece al subir ---------- */
+// Se queda siempre el buscador; el origen, las categorías, el contador y el orden se ocultan al hacer scroll hacia abajo
+// y vuelven en cuanto se sube (o al llegar arriba del todo), para ganar sitio para los productos.
+function setupFold() {
+  const tool = $('tool-products');
+  const list = els.list;
+  let last = 0;
+  let lockUntil = 0;
+  const fold = (on) => {
+    if (tool.classList.contains('head-folded') === on) return;
+    tool.classList.toggle('head-folded', on);
+    lockUntil = performance.now() + 380; // el cambio de altura mueve el scroll: se ignora mientras dura la animación
+  };
+  list.addEventListener('scroll', () => {
+    const y = list.scrollTop;
+    if (performance.now() < lockUntil) { last = y; return; }
+    const dy = y - last;
+    if (y <= 24) fold(false);
+    else if (dy > 10 && y > 100) fold(true);
+    else if (dy < -10) fold(false);
+    if (Math.abs(dy) > 10 || y <= 24) last = y;
+  }, { passive: true });
+}
+
 /* ---------- Móvil: oferta de bienvenida y registro en USFans a pantalla completa ---------- */
 function setupOffer() {
   const offer = $('offer');
@@ -1644,6 +1670,7 @@ async function init() {
     els.app.classList.remove('collapsed');
     activeTab = createTab(CONFIG.homeUrl, HOME_TITLE, { activate: false, lazy: true });
     setupOffer();
+    setupFold();
   } else if (!restoreTabs()) {
     createTab(CONFIG.homeUrl, HOME_TITLE);
   }

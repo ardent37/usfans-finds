@@ -43,9 +43,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="/styles.css?v=41">
+  <link rel="stylesheet" href="/styles.css?v=42">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" defer></script>
-  <script src="/app.js?v=41" defer></script>
+  <script src="/app.js?v=42" defer></script>
   <script src="/accounts.js?v=17" defer></script>
   <script src="/hauls.js?v=8" defer></script>
   <!-- Cloudflare Web Analytics (sin cookies) --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "c7ffc3a7af584d31b56909c703ad454a"}'></script>
@@ -87,6 +87,7 @@
           <svg class="search-ico" viewBox="0 0 24 24" width="16" height="16"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           <input id="search" type="search" data-i18n-attr="placeholder:search;aria-label:searchLabel" autocomplete="off" spellcheck="false">
         </div>
+        <div class="fold" id="fold"><div class="fold-in">
         <div class="source-bar" id="sourceBar" hidden>
           <div class="source-select" id="sourceSelect">
             <button class="source-btn" id="sourceBtn" type="button" aria-haspopup="listbox" aria-expanded="false"></button>
@@ -117,6 +118,7 @@
             </select>
           </div>
         </div>
+        </div></div>
         <div class="list" id="list">
           <div class="grid" id="grid"></div>
           <div class="sentinel" id="sentinel"></div>
@@ -210,7 +212,7 @@
   <!-- Móvil: oferta de bienvenida (solo la primera vez) y registro en USFans a pantalla completa -->
   <div class="offer" id="offer" hidden>
     <div class="offer-card" role="dialog" aria-modal="true" aria-labelledby="offerTitle">
-      <div class="offer-badge" aria-hidden="true">-40%</div>
+      <div class="offer-art"><img src="/offer-40.webp" width="1000" height="484" loading="lazy" decoding="async" alt="40 % en tu envío + 800 € en cupones" data-i18n-attr="alt:offerArtAlt"></div>
       <h2 id="offerTitle" data-i18n="offerTitle">Un 40 % de descuento en tu envío</h2>
       <p data-i18n="offerText">Regístrate ahora en USFans con nuestro código y consigue tu cupón del 40 % de descuento en el envío.</p>
       <button class="btn offer-go" id="offerGo" type="button" data-i18n="offerAccept">Obtener mi cupón</button>
