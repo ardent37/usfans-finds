@@ -1416,15 +1416,17 @@ body.modal-open { overflow: hidden; }
     position: sticky;
     top: 0;
     z-index: 6;
-    margin: -6px calc(-1 * var(--gutter)) 0;
-    padding: 6px var(--gutter) 2px;
+    margin: 0 calc(-1 * var(--gutter));
+    padding: 0 var(--gutter) 2px;
     background: var(--canvas);
     transition: transform .34s cubic-bezier(.32, .72, 0, 1), box-shadow .25s ease;
     will-change: transform;
   }
   .fold.is-floating { box-shadow: 0 1px 0 var(--hairline), 0 10px 22px -14px rgba(0, 0, 0, .3); }
   .fold.is-hidden { transform: translateY(-100%); pointer-events: none; box-shadow: none; }
-  #list { overflow-anchor: none; }
+  #list { overflow-anchor: none; padding-top: 0; }
+  /* La separación con el buscador es fondo sólido: queda fuera de la zona que se desplaza */
+  #tool-products .search-wrap { margin-bottom: 10px; }
 }
 @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   @media (max-width: 820px) {
@@ -1437,4 +1439,37 @@ body.modal-open { overflow: hidden; }
 }
 @media (prefers-reduced-motion: reduce) {
   .fold { transition: none; }
+}
+
+/* Selector de columnas (solo móvil) */
+.cols-switch { display: none; }
+@media (max-width: 820px) {
+  .list-head .count { flex: 1; min-width: 0; }
+  .cols-switch { display: inline-flex; gap: 2px; padding: 2px; border-radius: 9px; background: var(--fill); }
+  .cols-btn {
+    width: 30px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--muted);
+    transition: background .2s, color .2s;
+  }
+  .cols-btn[aria-pressed="true"] { background: var(--surface); color: var(--accent); box-shadow: 0 1px 3px rgba(0, 0, 0, .15); }
+  .grid[data-cols="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid[data-cols="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .grid[data-cols="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .grid[data-cols="3"] .card { padding: 6px 6px 9px; }
+  .grid[data-cols="4"] .card { padding: 4px 4px 7px; }
+  .grid[data-cols="3"] .name { font-size: 11.5px; }
+  .grid[data-cols="3"] .price { font-size: 11.5px; }
+  .grid[data-cols="4"] .name { font-size: 10px; min-height: 0; -webkit-line-clamp: 2; }
+  .grid[data-cols="4"] .price { font-size: 10px; }
+  .grid[data-cols="4"] .meta { padding: 6px 2px 0; }
+  .grid[data-cols="3"] .card-more { width: 24px; height: 24px; right: 4px; bottom: 4px; }
+  .grid[data-cols="4"] .card-more { width: 20px; height: 20px; right: 3px; bottom: 3px; }
+  .grid[data-cols="4"] .card-more svg { width: 12px; height: 12px; }
 }

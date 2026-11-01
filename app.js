@@ -94,6 +94,10 @@ const I18N = {
     offerBack: 'Volver a las herramientas',
     offerRegTitle: 'Registro en USFans',
     offerBtnTitle: 'Cupón del 40 % en el envío',
+    colsLabel: 'Productos por fila',
+    cols2: '2 columnas',
+    cols3: '3 columnas',
+    cols4: '4 columnas',
     linkLooking: 'Buscando en USFans…',
     linkUnavailable: 'No disponible en USFans',
     goHome: '← Registro',
@@ -187,6 +191,10 @@ const I18N = {
     offerBack: 'Back to the tools',
     offerRegTitle: 'Sign up to USFans',
     offerBtnTitle: '40% shipping coupon',
+    colsLabel: 'Products per row',
+    cols2: '2 columns',
+    cols3: '3 columns',
+    cols4: '4 columns',
     linkLooking: 'Looking it up on USFans…',
     linkUnavailable: 'Not available on USFans',
     goHome: '← Sign up',
@@ -1624,6 +1632,26 @@ function setupFold() {
   }, { passive: true });
 }
 
+/* ---------- Móvil: cuántas columnas de productos se ven (2, 3 o 4) ---------- */
+function setupCols() {
+  const sw = $('colsSwitch');
+  const grid = els.grid;
+  let n = 2;
+  try { n = +localStorage.getItem('cols') || 2; } catch { /* sin almacenamiento */ }
+  const apply = (v) => {
+    n = [2, 3, 4].includes(v) ? v : 2;
+    grid.dataset.cols = n;
+    sw.querySelectorAll('.cols-btn').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.cols === n)));
+  };
+  apply(n);
+  sw.addEventListener('click', (e) => {
+    const b = e.target.closest('.cols-btn');
+    if (!b) return;
+    apply(+b.dataset.cols);
+    try { localStorage.setItem('cols', String(n)); } catch { /* sin almacenamiento */ }
+  });
+}
+
 /* ---------- Móvil: oferta de bienvenida y registro en USFans a pantalla completa ---------- */
 function setupOffer() {
   const offer = $('offer');
@@ -1679,6 +1707,7 @@ async function init() {
     activeTab = createTab(CONFIG.homeUrl, HOME_TITLE, { activate: false, lazy: true });
     setupOffer();
     setupFold();
+    setupCols();
   } else if (!restoreTabs()) {
     createTab(CONFIG.homeUrl, HOME_TITLE);
   }
