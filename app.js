@@ -85,6 +85,15 @@ const I18N = {
     urlNoConvert: 'No se puede convertir ese enlace a USFans (el ID del producto está cifrado). Búscalo en USFans.',
     tabUsfans: 'USFans',
     tabProduct: 'Producto',
+    openInApp: 'Abrir en la app de USFans',
+    moreOptions: 'Más opciones',
+    offerTitle: 'Un 40 % de descuento en tu envío',
+    offerText: 'Regístrate ahora en USFans con nuestro código y consigue tu cupón del 40 % de descuento en el envío.',
+    offerAccept: 'Obtener mi cupón',
+    offerLater: 'Ahora no',
+    offerBack: 'Volver a las herramientas',
+    offerRegTitle: 'Registro en USFans',
+    offerBtnTitle: 'Cupón del 40 % en el envío',
     linkLooking: 'Buscando en USFans…',
     linkUnavailable: 'No disponible en USFans',
     goHome: '← Registro',
@@ -169,6 +178,15 @@ const I18N = {
     urlNoConvert: 'That link can’t be converted to USFans (the product ID is encrypted). Look it up on USFans.',
     tabUsfans: 'USFans',
     tabProduct: 'Product',
+    openInApp: 'Open in the USFans app',
+    moreOptions: 'More options',
+    offerTitle: '40% off your shipping',
+    offerText: 'Sign up to USFans now with our code and get your coupon for 40% off shipping.',
+    offerAccept: 'Get my coupon',
+    offerLater: 'Not now',
+    offerBack: 'Back to the tools',
+    offerRegTitle: 'Sign up to USFans',
+    offerBtnTitle: '40% shipping coupon',
     linkLooking: 'Looking it up on USFans…',
     linkUnavailable: 'Not available on USFans',
     goHome: '← Sign up',
@@ -544,11 +562,31 @@ function cardFor(p) {
   return a;
 }
 
+// En el móvil no hay clic derecho: cada tarjeta lleva un botón "⋯" con el mismo menú
+function moreButton(p) {
+  const b = document.createElement('span');
+  b.className = 'card-more';
+  b.setAttribute('role', 'button');
+  b.setAttribute('aria-label', t('moreOptions'));
+  b.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="5.5" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/><circle cx="18.5" cy="12" r="1.8" fill="currentColor"/></svg>';
+  b.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const r = b.getBoundingClientRect();
+    showMenu(r.right - 220, r.bottom + 4, p.name, productMenu(p));
+  });
+  return b;
+}
+
 function renderMore() {
   const next = state.filtered.slice(state.shown, state.shown + CONFIG.pageSize);
   if (!next.length) return;
   const frag = document.createDocumentFragment();
-  next.forEach((p) => frag.appendChild(cardFor(p)));
+  next.forEach((p) => {
+    const card = cardFor(p);
+    if (isMobile()) card.querySelector('.thumb')?.append(moreButton(p));
+    frag.appendChild(card);
+  });
   els.grid.appendChild(frag);
   state.shown += next.length;
 }
@@ -800,6 +838,7 @@ function closeTab(tab) {
 const TABS_KEY = 'openTabs';
 
 function saveTabs() {
+  if (isMobile()) return;
   try {
     localStorage.setItem(TABS_KEY, JSON.stringify({ active: tabs.indexOf(activeTab), tabs: tabs.map((x) => ({ url: x.url, title: x.title })) }));
   } catch (e) { /* sin almacenamiento */ }
@@ -876,6 +915,15 @@ function hideMenu() { els.menu.hidden = true; }
 
 function productMenu(p) {
   const url = withRef(p.link);
+  if (isMobile()) {
+    return [
+      { icon: '↗', label: t('openInApp'), action: () => openInApp(url) },
+      { icon: '⎘', label: t('copyLink'), action: () => navigator.clipboard?.writeText(url) },
+      '-',
+      ...(CONFIG.accountApi ? [{ icon: '＋', label: t('addToHaul'), action: () => window.Hauls?.addMenu(p) }] : []),
+      { icon: '◎', label: t('viewQc'), action: () => searchQc(p.link) },
+    ];
+  }
   return [
     { icon: '↵', label: t('openHere'), action: () => openProduct(p) },
     { icon: '⧉', label: t('openNewTab'), kbd: t('kbdCtrlClick'), action: () => openProduct(p, { newTab: true }) },
@@ -901,8 +949,24 @@ function tabMenu(t) {
 }
 
 /* ---------- Productos → pestañas ---------- */
+// Abre un enlace de USFans como si se tocara: con la app instalada, el teléfono abre la app en vez de la web
+function openInApp(url) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.rel = 'noopener';
+  a.target = '_blank';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
 function openProduct(p, { newTab = false, focus = false } = {}) {
   const url = withRef(p.link);
+  if (isMobile()) {
+    openInApp(url);
+    if (typeof window.gtag === 'function') window.gtag('event', 'product_click', { item_name: p.name, app: true });
+    return;
+  }
   if (newTab) createTab(url, p.name, { activate: focus });
   else navigateTab(activeTab, url, p.name);
 
@@ -923,6 +987,7 @@ const productFrom = (e) => {
 function onProductClick(e) {
   const p = productFrom(e);
   if (!p || e.button !== 0) return;
+  if (isMobile()) return; // el enlace de la tarjeta se abre solo (en la app de USFans si está instalada)
   e.preventDefault();
   openProduct(p, { newTab: e.ctrlKey || e.metaKey || e.shiftKey });
 }
@@ -972,10 +1037,7 @@ function renderSkeleton(n = 8) {
 }
 
 function setDrawer(open) {
-  if (isMobile()) {
-    slideTo(open);
-    return;
-  }
+  if (isMobile()) return; // en móvil solo existe la ventana de herramientas
   applyDrawerState(open);
 }
 
@@ -1528,6 +1590,41 @@ function setLanguage(next) {
 }
 
 /* ---------- Arranque ---------- */
+/* ---------- Móvil: oferta de bienvenida y registro en USFans a pantalla completa ---------- */
+function setupOffer() {
+  const offer = $('offer');
+  const reg = $('regView');
+  const frame = $('regFrame');
+  const seen = () => { try { return localStorage.getItem('offerSeen') === '1'; } catch (e) { return false; } };
+  const mark = () => { try { localStorage.setItem('offerSeen', '1'); } catch (e) { /* sin almacenamiento */ } };
+  const closeOffer = () => { offer.hidden = true; mark(); };
+  const openReg = () => {
+    closeOffer();
+    frame.src = CONFIG.homeUrl; // página de registro con mi código de afiliado
+    reg.classList.add('open');
+    reg.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('reg-open');
+  };
+  const closeReg = () => {
+    reg.classList.remove('open');
+    reg.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('reg-open');
+    setTimeout(() => { if (!reg.classList.contains('open')) frame.src = 'about:blank'; }, 450);
+  };
+  $('offerGo').onclick = openReg;
+  $('offerLater').onclick = closeOffer;
+  $('regBack').onclick = closeReg;
+  $('offerBtn').onclick = openReg;
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (reg.classList.contains('open')) closeReg();
+    else if (!offer.hidden) closeOffer();
+  });
+  // Solo la primera vez (y no si se llega con un enlace de haul compartido)
+  const q = new URLSearchParams(location.search);
+  if (!seen() && !q.has('haul') && !q.has('edit')) setTimeout(() => { offer.hidden = false; }, 700);
+}
+
 async function init() {
   applySeoMeta();
   applyStaticTexts();
@@ -1537,14 +1634,19 @@ async function init() {
   renderTools();
   setupResizer();
   setupUrlBar();
-  setupSwipe();
+  if (!isMobile()) setupSwipe();
   setupQc();
   setupTheme();
   setupChipScroll();
 
-  if (!restoreTabs()) createTab(CONFIG.homeUrl, HOME_TITLE);
-  if (isMobile()) settleSlide(false, false); // en móvil se empieza en USFans, sin animación
-  startCoach();
+  if (isMobile()) {
+    // En móvil no hay ventana de USFans: la pestaña existe pero no se carga
+    els.app.classList.remove('collapsed');
+    activeTab = createTab(CONFIG.homeUrl, HOME_TITLE, { activate: false, lazy: true });
+    setupOffer();
+  } else if (!restoreTabs()) {
+    createTab(CONFIG.homeUrl, HOME_TITLE);
+  }
 
   els.openDrawer.onclick = () => setDrawer(els.app.classList.contains('collapsed'));
   els.copyUrl.onclick = () => {

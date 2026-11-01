@@ -586,7 +586,7 @@ const Hauls = (() => {
   }
 
   function openCard(card, snap) {
-    card.addEventListener('click', (e) => { e.preventDefault(); openProduct({ id: card.dataset.id, link: snap.l, name: snap.n || t('importedProduct') }); });
+    card.addEventListener('click', (e) => { if (isMobile()) return; e.preventDefault(); openProduct({ id: card.dataset.id, link: snap.l, name: snap.n || t('importedProduct') }); });
     return card;
   }
 

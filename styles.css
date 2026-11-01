@@ -1312,3 +1312,99 @@ body.modal-open { overflow: hidden; }
 @media (max-width: 820px), (pointer: coarse) {
   #search, #haulSearch, .qc-form input, .field input:not(.code-input):not([type="checkbox"]):not([type="radio"]) { font-size: 16px !important; }
 }
+
+/* ============================================================
+   Móvil: solo existe la ventana de herramientas
+   ============================================================ */
+#offerBtn { display: none; color: var(--accent); }
+.offer { display: none; }
+.regview { visibility: hidden; transform: translateX(100%); }
+@media (max-width: 820px) {
+  .main, .pull-tab, .coach { display: none !important; }
+  .app .drawer { transform: none !important; margin-left: 0 !important; }
+  #closeDrawer { display: none; }
+  #offerBtn { display: grid; }
+
+  /* Oferta de bienvenida */
+  .offer {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    align-items: flex-end;
+    justify-content: center;
+    background: rgba(0, 0, 0, .42);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    animation: fadeIn .25s ease;
+  }
+  .offer:not([hidden]) { display: flex; }
+  .offer-card {
+    width: 100%;
+    max-width: 460px;
+    padding: 26px 22px calc(20px + env(safe-area-inset-bottom));
+    border-radius: 26px 26px 0 0;
+    background: var(--surface);
+    color: var(--ink);
+    text-align: center;
+    box-shadow: 0 -10px 50px rgba(0, 0, 0, .3);
+    animation: rise .45s var(--ease) both;
+  }
+  .offer-badge {
+    display: inline-grid;
+    place-items: center;
+    width: 72px;
+    height: 72px;
+    margin-bottom: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-family: "Geist", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .offer-card h2 { margin: 0 0 8px; font-family: "Geist", -apple-system, BlinkMacSystemFont, system-ui, sans-serif; font-size: 26px; font-weight: 600; letter-spacing: -.03em; text-wrap: balance; }
+  .offer-card p { margin: 0 0 18px; color: var(--muted); font-size: 15px; text-wrap: balance; }
+  .offer-go { width: 100%; height: 48px; justify-content: center; font-size: 16px; }
+  .offer-later { width: 100%; height: 44px; margin-top: 4px; justify-content: center; font-size: 15px; color: var(--muted); }
+
+  /* Registro de USFans a pantalla completa, con salida rápida hacia las herramientas */
+  .regview {
+    position: fixed;
+    inset: 0;
+    z-index: 85;
+    display: flex;
+    flex-direction: column;
+    background: var(--canvas);
+    transition: transform .4s var(--ease), visibility 0s .4s;
+  }
+  .regview.open { visibility: visible; transform: none; transition: transform .4s var(--ease); }
+  .reg-bar {
+    flex: none;
+    display: flex;
+    align-items: center;
+    height: calc(48px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) 8px 0;
+    border-bottom: .5px solid var(--hairline);
+    background: var(--surface);
+  }
+  .reg-back { display: inline-flex; align-items: center; gap: 2px; height: 40px; padding: 0 10px 0 4px; border: 0; background: transparent; color: var(--accent); font: inherit; font-size: 16px; font-weight: 500; }
+  .regview iframe { flex: 1; width: 100%; border: 0; background: #fff; padding-bottom: env(safe-area-inset-bottom); }
+  body.reg-open { overflow: hidden; }
+
+  /* Botón "⋯" de cada tarjeta (sustituye al clic derecho) */
+  .card-more {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .92);
+    color: #1d1d1f;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, .25);
+  }
+}
