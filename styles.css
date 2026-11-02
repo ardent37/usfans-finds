@@ -1485,3 +1485,7 @@ body.modal-open { overflow: hidden; }
 @media (max-width: 820px) {
   .grid[data-cols="4"] .card-verified svg { width: 13px; height: 13px; }
 }
+
+/* El panel nunca puede ser más ancho que la pantalla, aunque haya muchas categorías o nombres largos (modo expandido) */
+.drawer, .tool, .fold, .filters, .list-head, .source-bar { min-width: 0; }
+.app.expanded .drawer { min-width: 0; max-width: 100%; }
