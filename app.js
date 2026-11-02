@@ -4,6 +4,7 @@
 const CONFIG = {
   brand: 'Salty',
   refCode: 'GRAS35',
+  turnstileKey: '0x4AAAAAAFwlhM3bSHPedS_a',   // clave pública de Cloudflare Turnstile (comprobación anti-robots del registro)
   homeUrl: 'https://usfans.com/register?ref=GRAS35',   // sin www: misma sesión que los productos
 
   // URL del CSV publicado de Google Sheets
