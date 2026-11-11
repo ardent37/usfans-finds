@@ -382,7 +382,7 @@ const els = {
 
 const state = {
   all: [], filtered: [], shown: 0,
-  query: '', category: 'Trending Now', autoCat: true, sort: 'default', activeId: null,   // al abrir se ve «Tendencias»; autoCat = esa categoría la puso la web, no el usuario
+  query: '', category: 'Trending Now', sort: 'default', activeId: null,   // al abrir se ve «Tendencias»
   orig: [], imp: [], source: 'orig', tab: '',   // hoja original, importados, de dónde se ven los productos ('orig', 'all' o el id de una hoja importada) y pestaña elegida
 };
 
@@ -783,22 +783,32 @@ function applyFilters() {
   const tokens = norm(state.query).split(/\s+/).filter(Boolean);
   const scope = state.all.filter(inSource);
   state.scopeTotal = scope.length;
-  let list = scope.filter((p) =>
+  const matches = (p) =>
     !p.gone &&
     inSource(p) &&
     (!state.tab || tabMatch(p)) &&
-    (!state.category || p.categories.includes(state.category)) &&
     tokens.every((t) => p._n.includes(t)) &&
-    priceOk(p));
+    priceOk(p);
+  let list = scope.filter((p) => matches(p) && (!state.category || p.categories.includes(state.category)));
   if (state.category === TREND_KEY) list = trendingList(scope, tokens);
 
   const byPrice = (a, b) => (isNaN(a.price) ? Infinity : a.price) - (isNaN(b.price) ? Infinity : b.price);
-  if (state.sort === 'price-asc') list = list.slice().sort(byPrice);
-  else if (state.sort === 'price-desc') list = list.slice().sort((a, b) => byPrice(b, a));
-  else if (state.sort === 'name') list = list.slice().sort((a, b) => a.name.localeCompare(b.name, lang));
+  const sortList = (l) => {
+    if (state.sort === 'price-asc') return l.slice().sort(byPrice);
+    if (state.sort === 'price-desc') return l.slice().sort((a, b) => byPrice(b, a));
+    if (state.sort === 'name') return l.slice().sort((a, b) => a.name.localeCompare(b.name, lang));
+    return l;
+  };
+  list = sortList(list);
 
   // En Novedades, los productos que añade el administrador van primero (los más recientes antes)
   if (state.category === 'Update' && state.sort === 'default') list = [...list.filter((p) => p.adminId), ...list.filter((p) => !p.adminId)];
+
+  // Al buscar por nombre, primero salen los que coinciden y están en la categoría elegida; al acabarse, siguen los de todas las demás (la búsqueda no se limita a la categoría)
+  if (tokens.length && state.category) {
+    const inList = new Set(list);
+    list = [...list, ...sortList(scope.filter((p) => matches(p) && !inList.has(p)))];
+  }
 
   // La hoja original siempre va primero; los productos importados, después
   if (state.source === 'all') list = [...list.filter((p) => !p.src), ...list.filter((p) => p.src)];
@@ -945,7 +955,6 @@ function renderChips() {
     b.onclick = () => {
       state.category = kind === 'cat' ? key : '';
       state.tab = kind === 'tab' ? key : '';
-      state.autoCat = false;
       renderChips();
       applyFilters();
     };
@@ -2101,8 +2110,6 @@ async function init() {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
       state.query = els.search.value;
-      // Buscando sin haber elegido categoría, se busca en todo (no solo en los 100 de «Tendencias»)
-      if (state.autoCat && state.query.trim()) { state.category = ''; state.autoCat = false; renderChips(); }
       applyFilters();
     }, 120);
   });
