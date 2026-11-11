@@ -300,11 +300,25 @@ const Accounts = (() => {
     modal().hidden = false;
     document.body.classList.add('modal-open');
     $('modalCard').querySelector('input:not([type=checkbox])')?.focus();
+    fitModal();
   }
+
+  // En el móvil, el teclado tapa la parte baja de la pantalla sin cambiar el tamaño de la página: la ventana se ajusta al área que de verdad se ve
+  function fitModal() {
+    const m = modal();
+    const vv = window.visualViewport;
+    if (!vv || m.hidden || !matchMedia('(max-width: 820px)').matches) { m.style.removeProperty('top'); m.style.removeProperty('height'); m.style.removeProperty('bottom'); return; }
+    m.style.top = `${vv.offsetTop}px`;
+    m.style.height = `${vv.height}px`;
+    m.style.bottom = 'auto';
+  }
+  window.visualViewport?.addEventListener('resize', fitModal);
+  window.visualViewport?.addEventListener('scroll', fitModal);
 
   function closeModal() {
     if (busy) return;
     modal().hidden = true;
+    fitModal();
     document.body.classList.remove('modal-open');
     $('modalCard').replaceChildren();
     const cb = onClose;
@@ -1048,7 +1062,10 @@ const Accounts = (() => {
     });
     $('accountBtn').onclick = () => (me ? accountModal() : loginModal());
     $('importBtn').onclick = () => (me ? importModal() : loginModal(importModal));
-    modal().addEventListener('pointerdown', (e) => { if (e.target === modal()) closeModal(); });
+    // Tocar el fondo cierra la ventana. Se cierra al soltar (click) y no al tocar: si se cerrara al tocar, ese mismo toque acabaría sobre el producto que hay debajo y lo abriría
+    let downOnBackdrop = false;
+    modal().addEventListener('pointerdown', (e) => { downOnBackdrop = e.target === modal(); });
+    modal().addEventListener('click', (e) => { if (e.target === modal() && downOnBackdrop) closeModal(); downOnBackdrop = false; });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal().hidden) closeModal(); });
     token = store.get();
     if (token) refreshMe();

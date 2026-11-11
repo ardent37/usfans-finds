@@ -1272,7 +1272,7 @@ a.qc-thumb { display: block; cursor: zoom-in; }
 body.modal-open { overflow: hidden; }
 @media (max-width: 820px) {
   .modal { place-items: end center; padding: 0; }
-  .modal-card { width: 100%; border-radius: 22px 22px 0 0; padding-bottom: calc(22px + env(safe-area-inset-bottom)); }
+  .modal-card { width: 100%; border-radius: 22px 22px 0 0; padding-bottom: calc(22px + env(safe-area-inset-bottom)); max-height: 100%; }
 }
 
 @keyframes fadeIn { from { opacity: 0; } }
@@ -1610,7 +1610,7 @@ body.modal-open { overflow: hidden; }
     top: 0;
     z-index: 6;
     margin: 0 calc(-1 * var(--gutter));
-    padding: 0 var(--gutter) 2px;
+    padding: 5px var(--gutter) 2px;   /* los 5 px de arriba dejan sitio al borde naranja del buscador (si no, se corta) */
     background: var(--canvas);
     transition: transform .6s cubic-bezier(.22, .61, .36, 1), box-shadow .4s ease;
     will-change: transform;
