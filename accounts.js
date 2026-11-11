@@ -459,7 +459,7 @@ const Accounts = (() => {
     $('sourceBtn').setAttribute('aria-expanded', 'false');
     if (state.source === value) return;
     state.source = value;
-    state.category = '';
+    state.category = value === 'orig' || value === 'all' ? 'Trending Now' : '';
     state.tab = '';
     renderSource();
     renderChips();
@@ -551,7 +551,7 @@ const Accounts = (() => {
     // Por defecto se ven todas mis spreadsheets (la verificada primero), hasta que se elija otra cosa
     if (!sourcePicked && byLink.size && state.source === 'orig') {
       state.source = 'all';
-      state.category = '';
+      state.category = 'Trending Now';
       state.tab = '';
       renderChips();
       applyFilters();
@@ -565,7 +565,7 @@ const Accounts = (() => {
     store.set(null);
     sourcePicked = false;
     state.source = 'orig';
-    state.category = '';
+    state.category = 'Trending Now';
     state.tab = '';
     setImported([]);
     paintAccount();

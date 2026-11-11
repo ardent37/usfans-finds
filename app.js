@@ -382,7 +382,7 @@ const els = {
 
 const state = {
   all: [], filtered: [], shown: 0,
-  query: '', category: '', sort: 'default', activeId: null,
+  query: '', category: 'Trending Now', autoCat: true, sort: 'default', activeId: null,   // al abrir se ve «Tendencias»; autoCat = esa categoría la puso la web, no el usuario
   orig: [], imp: [], source: 'orig', tab: '',   // hoja original, importados, de dónde se ven los productos ('orig', 'all' o el id de una hoja importada) y pestaña elegida
 };
 
@@ -832,7 +832,7 @@ function setImported(list) {
   extra.forEach((p, i) => { p.id = state.orig.length + i; p.src = 1; });
   state.all = state.orig.concat(extra);
   const gone = state.source === 'all' ? !list.length : state.source !== 'orig' && !list.some((p) => p.imps?.[state.source]);
-  if (gone) { state.source = 'orig'; state.category = ''; state.tab = ''; }
+  if (gone) { state.source = 'orig'; state.category = TREND_KEY; state.tab = ''; }
   if (state.all.length) { renderChips(); applyFilters(); }
 }
 
@@ -945,11 +945,15 @@ function renderChips() {
     b.onclick = () => {
       state.category = kind === 'cat' ? key : '';
       state.tab = kind === 'tab' ? key : '';
+      state.autoCat = false;
       renderChips();
       applyFilters();
     };
     els.chips.appendChild(b);
   };
+  // «Tendencias» va la primera y «Todo» justo después (en las hojas importadas, «Todo» sigue siendo el primero)
+  const first = entries[0]?.kind === 'cat' && entries[0].key === TREND_KEY ? entries.shift() : null;
+  if (first) mk(categoryLabel(first.key), first.kind, first.key);
   mk(t('all'), 'all', '');
   entries.forEach((e) => mk(e.kind === 'cat' ? categoryLabel(e.key) : e.key, e.kind, e.key));
   updateChipArrows();
@@ -2095,7 +2099,12 @@ async function init() {
   let searchTimer;
   els.search.addEventListener('input', () => {
     clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => { state.query = els.search.value; applyFilters(); }, 120);
+    searchTimer = setTimeout(() => {
+      state.query = els.search.value;
+      // Buscando sin haber elegido categoría, se busca en todo (no solo en los 100 de «Tendencias»)
+      if (state.autoCat && state.query.trim()) { state.category = ''; state.autoCat = false; renderChips(); }
+      applyFilters();
+    }, 120);
   });
   els.sort.onchange = () => { state.sort = els.sort.value; applyFilters(); };
   setupPrice();
@@ -2124,6 +2133,7 @@ async function init() {
   // A partir de aquí el contador lo escribe renderCount(), no applyStaticTexts()
   els.count.removeAttribute('data-i18n');
   state.orig = state.all;
+  if (!state.all.some((p) => p.categories.includes(TREND_KEY))) state.category = '';   // sin «Tendencias» en la hoja: se empieza en «Todo»
   renderChips();
   applyFilters();
   window.Accounts?.start();
