@@ -1605,3 +1605,9 @@ body.modal-open { overflow: hidden; }
 
 .captcha:empty { display: none; }
 .captcha { display: flex; justify-content: center; }
+
+/* Producto «No disponible»: foto desenfocada, texto encima y sin enlace */
+.card.soon { cursor: default; }
+.card.soon .thumb img { filter: blur(10px) brightness(.85); transform: scale(1.15); }
+.card.soon:hover .thumb img { transform: scale(1.15); }
+.soon-tag { position: relative; z-index: 1; padding: .45em 1em; border-radius: 999px; background: rgba(0, 0, 0, .72); color: #fff; font-weight: 700; font-size: .9rem; letter-spacing: .02em; text-align: center; }
