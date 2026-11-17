@@ -135,7 +135,7 @@ const Admin = (() => {
     info: () => lv('na', 'Solo informativo', 'Este dato no tiene un límite propio que vigilar. El espacio que ocupa ya sale dentro de «Base de datos».'),
     db: (b) => {
       const t = `Base de datos: ${size(b)} de 500 MB`;
-      if (b < 250 * MB) return lv('ok', t, 'Hay mucho margen. Lo que más la llena son las fotos subidas, las hojas importadas y los productos guardados en la caché.');
+      if (b < 250 * MB) return lv('ok', t, 'Hay mucho margen. Lo que más la llena son las fotos subidas y los productos guardados en la caché.');
       if (b < 400 * MB) return lv('warn', t, `Ya ocupa más de la mitad. Mira qué crece (fotos subidas, caché de productos) y ve pensando en contratar ${PAID}, que sube el límite a 10 GB.`);
       return lv('bad', t, `Se acerca al límite: si se llena dejarán de guardarse cuentas, hauls y fotos nuevas. Contrata ${PAID} (10 GB) o borra lo que no uses.`);
     },
@@ -334,7 +334,7 @@ const Admin = (() => {
         row('Productos propios', num(m.adminProducts), null, RULES.capacity(m.adminProducts, 3000, 'productos propios')),
         row('Fotos subidas', `${num(m.adminImages)} (${size(m.adminImageBytes)})`, null, RULES.capacity(m.adminImages, 3000, 'fotos subidas')),
         row('Productos guardados en la caché', num(m.goods)),
-        row('Hauls · hojas importadas', `${num(m.hauls)} · ${num(m.imports)}`),
+        row('Hauls', num(m.hauls)),
       );
 
       // Estado general: el peor de todos

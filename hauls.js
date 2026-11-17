@@ -270,7 +270,7 @@ const Hauls = (() => {
   }
 
   const itemProduct = (it, readOnly) => ({
-    id: `h${it.k}`, name: it.n || t('importedProduct'), unnamed: !it.n, link: it.l, image: it.i, priceRaw: it.p,
+    id: `h${it.k}`, name: it.n || t('unnamedProduct'), unnamed: !it.n, link: it.l, image: it.i, priceRaw: it.p,
     categories: [], sections: [], src: it.i && it.p ? 0 : 1, done: !!(it.i && it.p), _n: '', haulKey: readOnly ? null : it.k,
   });
 
@@ -601,7 +601,7 @@ const Hauls = (() => {
   }
 
   /* ---------- Dentro de un haul o de una subcarpeta ---------- */
-  // Búsqueda en todas las spreadsheets (la verificada y las importadas), sin importar cuál esté elegida en la lista
+  // Búsqueda en todo el catálogo
   function searchAll(q) {
     // Un enlace de USFans, Weidian, Taobao o 1688 enseña ese producto
     const linked = linkLookup(q, () => { if (query === q) paintBody(); });
@@ -610,7 +610,7 @@ const Hauls = (() => {
     if (!tokens.length) return [];
     const seen = new Set();
     const out = [];
-    for (const p of [...state.orig, ...state.imp]) {
+    for (const p of state.orig) {
       if (p.gone || !tokens.every((x) => p._n.includes(x))) continue;
       const k = keyOf(p.link);
       if (!k || seen.has(k)) continue;
@@ -664,7 +664,7 @@ const Hauls = (() => {
   }
 
   function openCard(card, snap) {
-    card.addEventListener('click', (e) => { if (isMobile()) return; e.preventDefault(); openProduct({ id: card.dataset.id, link: snap.l, name: snap.n || t('importedProduct') }); });
+    card.addEventListener('click', (e) => { if (isMobile()) return; e.preventDefault(); openProduct({ id: card.dataset.id, link: snap.l, name: snap.n || t('unnamedProduct') }); });
     return card;
   }
 

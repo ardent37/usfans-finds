@@ -42,7 +42,7 @@ const CONFIG = {
 
   currency: '€',     // símbolo si el precio de la hoja es solo un número
   pageSize: 60,      // productos que se pintan por tanda al hacer scroll
-  // API de cuentas, importación y hauls (Cloudflare Workers). En local se usa la API de este ordenador; vacío = la función no aparece.
+  // API de cuentas y hauls (Cloudflare Workers). En local se usa la API de este ordenador; vacío = la función no aparece.
   accountApi: ['localhost', '127.0.0.1'].includes(location.hostname) ? 'http://localhost:8787' : 'https://usfans-api.ardentcone.workers.dev',
   maxTabs: 10,       // al pasarse, se cierra la pestaña inactiva más antigua
 };
@@ -383,7 +383,7 @@ const els = {
 const state = {
   all: [], filtered: [], shown: 0,
   query: '', category: 'Trending Now', sort: 'default', activeId: null,   // al abrir se ve «Tendencias»
-  orig: [], imp: [], source: 'orig', tab: '',   // hoja original, importados, de dónde se ven los productos ('orig', 'all' o el id de una hoja importada) y pestaña elegida
+  orig: [],
 };
 
 const isMobile = () => window.matchMedia('(max-width: 820px)').matches;
@@ -529,7 +529,8 @@ function mergeExtras(list, items) {
 
 function applyExtras() {
   state.orig = mergeExtras(baseCatalog, extraItems);
-  setImported(state.imp || []); // vuelve a juntar las hojas importadas (si las hay) y repinta
+  state.all = state.orig;
+  if (state.all.length) { renderChips(); applyFilters(); }
 }
 
 async function refreshExtras() {
@@ -574,7 +575,7 @@ function trendingList(scope, tokens) {
     const k = productKeyOf(p.link);
     if (!seen.has(k)) { seen.add(k); picked.push(p); }
   }
-  return picked.filter((p) => (!state.tab || tabMatch(p)) && tokens.every((t) => p._n.includes(t)) && priceOk(p));
+  return picked.filter((p) => tokens.every((t) => p._n.includes(t)) && priceOk(p));
 }
 
 function sampleProducts() {
@@ -601,12 +602,6 @@ function sampleProducts() {
 }
 
 /* ---------- Filtrado y pintado ---------- */
-// Qué productos se ven: solo los de mi hoja (verificados), los de una hoja importada o todos (los de mi hoja primero)
-const inSource = (p) => (state.source === 'orig' ? !p.src : state.source === 'all' ? true : !!p.imps?.[state.source]);
-const tabMatch = (p) => (state.source === 'all'
-  ? Object.values(p.imps || {}).some((a) => a.includes(state.tab))
-  : (p.imps?.[state.source] || []).includes(state.tab));
-
 // Si lo escrito en el buscador es un enlace de USFans, Weidian, Taobao o 1688, se enseña ese producto (con su nombre, precio y foto de USFans)
 const linkCache = new Map();
 
@@ -781,12 +776,10 @@ function applyFilters() {
     return;
   }
   const tokens = norm(state.query).split(/\s+/).filter(Boolean);
-  const scope = state.all.filter(inSource);
+  const scope = state.all;
   state.scopeTotal = scope.length;
   const matches = (p) =>
     !p.gone &&
-    inSource(p) &&
-    (!state.tab || tabMatch(p)) &&
     tokens.every((t) => p._n.includes(t)) &&
     priceOk(p);
   let list = scope.filter((p) => matches(p) && (!state.category || p.categories.includes(state.category)));
@@ -810,9 +803,6 @@ function applyFilters() {
     list = [...list, ...sortList(scope.filter((p) => matches(p) && !inList.has(p)))];
   }
 
-  // La hoja original siempre va primero; los productos importados, después
-  if (state.source === 'all') list = [...list.filter((p) => !p.src), ...list.filter((p) => p.src)];
-
   state.filtered = list;
   state.shown = 0;
   els.grid.replaceChildren();
@@ -826,25 +816,10 @@ function applyFilters() {
   renderMore();
 }
 
-// Une los productos de la hoja original con los importados (sin repetir los que ya estén en la original)
 const productKeyOf = (link) => {
   const r = parseProductLink(link);
   return r ? `${r.platform}/${r.id}` : link;
 };
-
-function setImported(list) {
-  state.imp = list;
-  // Los productos de mis hojas que ya están en la original se muestran como los de la original, pero siguen contando para el filtro de cada hoja
-  const byKey = new Map(list.map((p) => [productKeyOf(p.link), p]));
-  state.orig.forEach((p) => { p.imps = byKey.get(productKeyOf(p.link))?.imps || null; });
-  const seen = new Set(state.orig.map((p) => productKeyOf(p.link)));
-  const extra = list.filter((p) => !seen.has(productKeyOf(p.link)));
-  extra.forEach((p, i) => { p.id = state.orig.length + i; p.src = 1; });
-  state.all = state.orig.concat(extra);
-  const gone = state.source === 'all' ? !list.length : state.source !== 'orig' && !list.some((p) => p.imps?.[state.source]);
-  if (gone) { state.source = 'orig'; state.category = TREND_KEY; state.tab = ''; }
-  if (state.all.length) { renderChips(); applyFilters(); }
-}
 
 function renderCount() {
   const n = state.filtered.length;
@@ -898,7 +873,7 @@ function cardFor(p) {
   }
 
   a.append(thumb, meta);
-  if (p.src === 1 && !p.done) window.Accounts?.watch(a, p);   // importado: la foto y el precio se piden al verlo
+  if (p.src === 1 && !p.done) window.Accounts?.watch(a, p);   // la foto y el precio se piden al verlo
   return a;
 }
 
@@ -938,33 +913,27 @@ function renderChips() {
   const order = CONFIG.categoryLabels.map(([from]) => from);
   const rank = (c) => (order.includes(c) ? order.indexOf(c) : order.length);
   const cats = [...counts.keys()].sort((a, b) => rank(a) - rank(b) || counts.get(b) - counts.get(a));
-  // Pestañas de las hojas importadas (solo cuando se ve alguna hoja importada)
-  const tabs = state.source === 'orig' ? [] : (window.Accounts?.tabNames(state.source) || []);
-  const entries = [
-    ...(state.source === 'orig' || state.source === 'all' ? cats.map((c) => ({ kind: 'cat', key: c })) : []),
-    ...tabs.map((x) => ({ kind: 'tab', key: x })),
-  ];
+  const entries = cats.map((c) => ({ kind: 'cat', key: c }));
   els.chips.replaceChildren();
   if (!entries.length) { updateChipArrows(); return; }
   const mk = (label, kind, key) => {
     const b = document.createElement('button');
     b.className = 'chip';
     b.textContent = label;
-    const on = () => (kind === 'cat' ? state.category === key && !state.tab : kind === 'tab' ? state.tab === key : !state.category && !state.tab);
+    const on = () => (kind === 'cat' ? state.category === key : !state.category);
     b.setAttribute('aria-pressed', String(on()));
     b.onclick = () => {
       state.category = kind === 'cat' ? key : '';
-      state.tab = kind === 'tab' ? key : '';
       renderChips();
       applyFilters();
     };
     els.chips.appendChild(b);
   };
-  // «Tendencias» va la primera y «Todo» justo después (en las hojas importadas, «Todo» sigue siendo el primero)
+  // «Tendencias» va la primera y «Todo» justo después
   const first = entries[0]?.kind === 'cat' && entries[0].key === TREND_KEY ? entries.shift() : null;
   if (first) mk(categoryLabel(first.key), first.kind, first.key);
   mk(t('all'), 'all', '');
-  entries.forEach((e) => mk(e.kind === 'cat' ? categoryLabel(e.key) : e.key, e.kind, e.key));
+  entries.forEach((e) => mk(categoryLabel(e.key), e.kind, e.key));
   updateChipArrows();
 }
 
