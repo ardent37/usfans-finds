@@ -999,9 +999,6 @@ body.coaching .pull-tab-grip { box-shadow: 0 0 0 0 color-mix(in srgb, var(--acce
   cursor: pointer;
 }
 .coach-skip:active { background: rgba(255, 255, 255, .3); }
-@media (min-width: 1400px) {
-  :root { --drawer-w: 470px; }
-}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
