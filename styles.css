@@ -25,7 +25,7 @@
   --r-lg: 18px;
   --r-pill: 980px;
 
-  --drawer-w: 400px;
+  --drawer-w: clamp(400px, 58vw, 520px);   /* ancho justo para ver 3 columnas de productos */
   --bar-h: 56px;
   --gutter: 20px;
   --ease: cubic-bezier(.32, .72, 0, 1);
