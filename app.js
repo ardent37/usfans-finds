@@ -385,7 +385,7 @@ const els = {
 
 const state = {
   all: [], filtered: [], shown: 0,
-  query: '', category: 'Trending Now', sort: 'default', activeId: null,   // al abrir se ve «Tendencias»
+  query: '', category: '', sort: 'default', activeId: null,   // al abrir se ve «Todo» (sus 100 primeros son las tendencias)
   orig: [],
 };
 
@@ -787,7 +787,12 @@ function applyFilters() {
     tokens.every((t) => p._n.includes(t)) &&
     priceOk(p);
   let list = scope.filter((p) => matches(p) && (!state.category || p.categories.includes(state.category)));
-  if (state.category === TREND_KEY) list = trendingList(scope, tokens);
+  // CATS-TODO: en «Todo» (orden por defecto) los 100 primeros son las tendencias y detrás va el resto
+  if (!state.category && state.sort === 'default' && true) {
+    const top = trendingList(scope, tokens);
+    const inTop = new Set(top);
+    list = [...top, ...list.filter((p) => !inTop.has(p))];
+  }
 
   const byPrice = (a, b) => (isNaN(a.price) ? Infinity : a.price) - (isNaN(b.price) ? Infinity : b.price);
   const sortList = (l) => {
@@ -925,7 +930,7 @@ function renderChips() {
   state.orig.forEach((p) => p.categories.forEach((c) => counts.set(c, (counts.get(c) || 0) + 1)));
   const order = CONFIG.categoryLabels.map(([from]) => from);
   const rank = (c) => (order.includes(c) ? order.indexOf(c) : order.length);
-  const cats = [...counts.keys()].sort((a, b) => rank(a) - rank(b) || counts.get(b) - counts.get(a));
+  const cats = [...counts.keys()].filter((c) => c !== TREND_KEY).sort((a, b) => rank(a) - rank(b) || counts.get(b) - counts.get(a));
   const entries = cats.map((c) => ({ kind: 'cat', key: c }));
   els.chips.replaceChildren();
   if (!entries.length) { updateChipArrows(); return; }
@@ -1971,10 +1976,10 @@ function setupFold() {
 function setupCols() {
   const sw = $('colsSwitch');
   const grid = els.grid;
-  let n = 2;
-  try { n = +localStorage.getItem('cols') || 2; } catch { /* sin almacenamiento */ }
+  let n = 3;
+  try { n = +localStorage.getItem('cols') || 3; } catch { /* sin almacenamiento */ }
   const apply = (v) => {
-    n = [2, 3, 4].includes(v) ? v : 2;
+    n = [2, 3, 4].includes(v) ? v : 3;
     grid.dataset.cols = n;
     sw.querySelectorAll('.cols-btn').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.cols === n)));
   };
@@ -2108,7 +2113,7 @@ async function init() {
   try {
     const extrasP = fetchExtras();
     // Tendencias reales: llegan sin bloquear la carga; si se está viendo esa categoría, se repinta al llegar
-    fetchTrending().then((keys) => { if (keys) { trendKeys = keys; if (state.category === TREND_KEY && state.all.length) applyFilters(); } });
+    fetchTrending().then((keys) => { if (keys) { trendKeys = keys; if (!state.category && state.all.length) applyFilters(); } });
     baseCatalog = CONFIG.dataUrl ? await loadCsv(CONFIG.dataUrl) : sampleProducts();
     baseCatalog.push({ name: 'GTA 6', link: 'gta6', priceRaw: '$71.88', price: 71.88, image: '/gta6.jpg', categories: ['Trending Now'], sections: [], _n: 'gta 6', soon: true }); /* GTA6-SOON */
     // Si el servidor tarda (o está bloqueado), la hoja se enseña igual y los productos propios se añaden cuando lleguen
