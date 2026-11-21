@@ -789,9 +789,10 @@ function applyFilters() {
   let list = scope.filter((p) => matches(p) && (!state.category || p.categories.includes(state.category)));
   // CATS-TODO: en «Todo» (orden por defecto) los 100 primeros son las tendencias y detrás va el resto
   if (!state.category && state.sort === 'default' && true) {
-    const top = trendingList(scope, tokens);
-    const inTop = new Set(top);
-    list = [...top, ...list.filter((p) => !inTop.has(p))];
+    const prov = list.filter((p) => p.prov);   // PROV-54: los provisionales, los primeros
+    const top = trendingList(scope, tokens).filter((p) => !p.prov);
+    const inTop = new Set([...prov, ...top]);
+    list = [...prov, ...top, ...list.filter((p) => !inTop.has(p))];
   }
 
   const byPrice = (a, b) => (isNaN(a.price) ? Infinity : a.price) - (isNaN(b.price) ? Infinity : b.price);
@@ -2115,6 +2116,15 @@ async function init() {
     // Tendencias reales: llegan sin bloquear la carga; si se está viendo esa categoría, se repinta al llegar
     fetchTrending().then((keys) => { if (keys) { trendKeys = keys; if (!state.category && state.all.length) applyFilters(); } });
     baseCatalog = CONFIG.dataUrl ? await loadCsv(CONFIG.dataUrl) : sampleProducts();
+    // PROV-54: productos provisionales (spreadsheet de prueba): van los primeros en «Todo». Para quitarlos: borrar este bloque, el de applyFilters y la carpeta /prov/
+    try {
+      const pr = await fetch('/prov/products.json', { cache: 'no-cache' });
+      if (pr.ok) {
+        const provItems = (await pr.json()).map((x) => ({ name: x.name, link: x.link, priceRaw: x.price, price: parsePrice(x.price), image: x.image, categories: [], sections: [], _n: norm(x.name), prov: true }));
+        const provKeys = new Set(provItems.map((p) => productKeyOf(p.link)));
+        baseCatalog = [...baseCatalog.filter((p) => !provKeys.has(productKeyOf(p.link))), ...provItems];
+      }
+    } catch { /* sin lista provisional */ }
     baseCatalog.push({ name: 'GTA 6', link: 'gta6', priceRaw: '$71.88', price: 71.88, image: '/gta6.jpg', categories: ['Trending Now'], sections: [], _n: 'gta 6', soon: true }); /* GTA6-SOON */
     // Si el servidor tarda (o está bloqueado), la hoja se enseña igual y los productos propios se añaden cuando lleguen
     const early = await Promise.race([extrasP, new Promise((r) => setTimeout(() => r(null), 2000))]);
