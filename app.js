@@ -578,7 +578,7 @@ function trendingList(scope, tokens) {
     const k = productKeyOf(p.link);
     if (!seen.has(k)) { seen.add(k); picked.push(p); }
   }
-  { const g = scope.find((p) => p.soon); if (g && !picked.includes(g)) picked.splice(Math.floor(picked.length / 2), 0, g); } /* GTA6-SOON */
+  { const g = scope.find((p) => p.gta); if (g && !picked.includes(g)) picked.splice(Math.floor(picked.length / 2), 0, g); } /* GTA6-SOON */
   return picked.filter((p) => tokens.every((t) => p._n.includes(t)) && priceOk(p));
 }
 
@@ -2125,7 +2125,7 @@ async function init() {
         baseCatalog = [...baseCatalog.filter((p) => !provKeys.has(productKeyOf(p.link))), ...provItems];
       }
     } catch { /* sin lista provisional */ }
-    baseCatalog.push({ name: 'GTA 6', link: 'gta6', priceRaw: '$71.88', price: 71.88, image: '/gta6.jpg', categories: ['Trending Now'], sections: [], _n: 'gta 6', soon: true }); /* GTA6-SOON */
+    baseCatalog.push({ name: 'GTA 6', link: 'gta6', adminLink: 'https://usfans.com/product/3/7849517634?ref=GRAS35', gta: true, priceRaw: '$71.88', price: 71.88, image: '/gta6.jpg', categories: ['Trending Now'], sections: [], _n: 'gta 6', soon: true }); /* GTA6-SOON */
     // Si el servidor tarda (o está bloqueado), la hoja se enseña igual y los productos propios se añaden cuando lleguen
     const early = await Promise.race([extrasP, new Promise((r) => setTimeout(() => r(null), 2000))]);
     extraItems = early || [];
@@ -2145,6 +2145,16 @@ async function init() {
   applyFilters();
   window.Accounts?.start();
   window.Hauls?.start();
+  // GTA6-ADMIN: para el administrador GTA 6 es un producto normal (con su enlace y sin desenfoque); para el público sigue «No disponible»
+  const gtaForAdmin = () => {
+    for (const arr of [baseCatalog, state.orig, state.all]) for (const p of arr || []) if (p.gta && p.soon) { p.soon = false; p.link = p.adminLink; }
+    applyFilters();
+  };
+  if (document.documentElement.dataset.admin === '1') gtaForAdmin();
+  else {
+    const gob = new MutationObserver(() => { if (document.documentElement.dataset.admin === '1') { gob.disconnect(); gtaForAdmin(); } });
+    gob.observe(document.documentElement, { attributes: true, attributeFilter: ['data-admin'] });
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);
